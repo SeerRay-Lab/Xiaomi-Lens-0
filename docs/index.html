@@ -70,9 +70,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 }
 .brand { display: flex; align-items: center; gap: 11px; }
 .brand-mark {
-  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px;
-  background: #ff8d32; border: 2px solid var(--outline); box-shadow: 0 2px 0 var(--outline);
-  font: 800 15px var(--sans); letter-spacing: -1px; color: var(--ink);
+  display: block; width: 32px; height: 32px; object-fit: contain; flex-shrink: 0;
 }
 .wordmark { font-size: 22px; font-weight: 550; white-space: nowrap; }
 .site-header nav { display: flex; gap: 6px; margin-inline: auto; font: 500 15px var(--display); overflow-x: auto; scrollbar-width: none; }
@@ -352,7 +350,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 
 <header class="site-header">
   <a class="brand" href="#overview" aria-label="Xiaomi-Lens-0 home">
-    <span class="brand-mark" aria-hidden="true">mi</span>
+    <img class="brand-mark" src="assets/figures/xiaomi-logo.png" width="32" height="32" alt="" aria-hidden="true">
     <span class="wordmark project-name">Xiaomi-Lens<span class="accent">-0</span></span>
   </a>
   <nav aria-label="Sections">
