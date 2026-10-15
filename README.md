@@ -26,8 +26,6 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 
 - **2026-10**: This repository includes Transformers and vLLM inference code, a static project page, and recorded examples across six capability domains.
 
-Release status (2026-10-15): the model and LensBench links currently require access (HTTP 401), and the hosted project page is not yet available (HTTP 404). Download commands below require access to the corresponding repositories. Preview the included page locally with `python3 -m http.server 8000 -d docs`.
-
 ## ✨ What it does
 
 1. **Referring Expression Comprehension**: finds the object a phrase describes and returns its bounding box. First on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits.
