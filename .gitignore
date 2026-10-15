@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Xiaomi-Lens-0 project files
+.DS_Store
+*.swp
+*.swo
+*.py[cod]
+.venv/
+output/
+deploy/
+/docs/README.md

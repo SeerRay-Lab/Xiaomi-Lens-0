@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xiaomi-Lens-0</title>
+<meta name="description" content="Xiaomi-Lens-0: pixel-level grounding and visual reasoning in a compact 4B multimodal large language model.">
+<meta property="og:title" content="Xiaomi-Lens-0">
+<meta property="og:description" content="Pixel-level grounding and visual reasoning in a compact 4B multimodal model.">
+<meta property="og:image" content="https://seerray-lab.github.io/Xiaomi-Lens-0/assets/figures/architecture.png">
+<style>
+@font-face { font-family: "Fredoka"; font-weight: 300 700; font-display: swap; src: url("assets/fonts/fredoka.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 200 1000; font-display: swap; src: url("assets/fonts/nunito.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 100 800; font-display: swap; src: url("assets/fonts/jetbrains-mono.woff2") format("woff2"); }
+
+:root {
+  --paper: #fff8ec;
+  --white: #ffffff;
+  --ink: #14293f;
+  --muted: #52657a;
+  --orange: #b95018;
+  --orange-bright: #ff6900;
+  --orange-soft: #fff0d8;
+  --line: #d5e0e8;
+  --tint: #eaf5f6;
+  --teal-soft: #edf7f5;
+  --outline: #1e3450;
+  --navy: #173b63;
+  --shadow: 0 4px 0 #1e3450;
+  --shadow-soft: 0 4px 0 #c9dfe3;
+  --sans: "Nunito", "PingFang SC", "Noto Sans SC", Arial, sans-serif;
+  --display: "Fredoka", "Nunito", "PingFang SC", sans-serif;
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, p { margin: 0; }
+h1, h2, h3, h4, .button, .wordmark, .metric-value { font-family: var(--display); }
+h1, h2, h3, h4 { line-height: 1.15; letter-spacing: -.015em; }
+p { color: var(--muted); }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; height: auto; display: block; }
+code { font-family: var(--mono); font-size: .9em; overflow-wrap: anywhere; font-variant-ligatures: none; }
+strong { color: var(--ink); }
+button { font: inherit; cursor: pointer; color: inherit; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; }
+::selection { background: #ffcead; color: #222; }
+[hidden] { display: none !important; }
+
+.shell { width: min(1200px, calc(100% - 80px)); margin-inline: auto; }
+.pad { padding-block: 84px; }
+.tinted { background: var(--tint); }
+.eyebrow {
+  font: 600 11px/1.6 var(--mono); letter-spacing: 1.3px; text-transform: uppercase; color: var(--orange);
+}
+.accent { color: var(--orange-bright); }
+.project-name { color: #000; }
+
+/* Header */
+.site-header {
+  position: sticky; top: 0; z-index: 30; height: 76px;
+  display: flex; align-items: center; gap: 24px;
+  padding-inline: max(40px, calc((100% - 1200px) / 2));
+  background: #fff8ecf5; backdrop-filter: blur(12px); border-bottom: 2px solid #1e34501a;
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand-mark {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px;
+  background: #ff8d32; border: 2px solid var(--outline); box-shadow: 0 2px 0 var(--outline);
+  font: 800 15px var(--sans); letter-spacing: -1px; color: var(--ink);
+}
+.wordmark { font-size: 22px; font-weight: 550; white-space: nowrap; }
+.site-header nav { display: flex; gap: 6px; margin-inline: auto; font: 500 15px var(--display); overflow-x: auto; scrollbar-width: none; }
+.site-header nav::-webkit-scrollbar { display: none; }
+.site-header nav a { padding: 9px 15px; border-radius: 999px; white-space: nowrap; color: var(--muted); }
+.site-header nav a:hover { background: #ddf0f4; color: var(--ink); }
+.site-header nav a[aria-current="true"] { background: var(--navy); color: #fff; }
+.header-pill {
+  border: 2px solid var(--outline); border-radius: 999px; padding: 6px 15px; white-space: nowrap;
+  box-shadow: 0 2px 0 var(--outline); font: 500 14px var(--display); background: var(--white);
+}
+.header-pill:hover { background: var(--tint); }
+
+/* Hero */
+#overview { overflow-x: clip; }
+.hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 44px; align-items: center; padding-block: 68px 54px; }
+.hero h1 { font-size: clamp(42px, 4.8vw, 65px); font-weight: 600; letter-spacing: -2px; margin-top: 22px; }
+.hero-headline { font: 450 clamp(38px, 4.6vw, 61px)/1.14 var(--display); letter-spacing: -1.4px; margin-top: 14px; color: #000; }
+.hero-headline em { font-style: normal; color: inherit; }
+.hero-description { max-width: 500px; font-size: 18px; line-height: 1.65; margin-top: 24px; }
+.hero-description strong { font-weight: 800; }
+.actions { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 28px; }
+.actions + .actions { margin-top: 13px; }
+.button {
+  display: inline-flex; align-items: center; gap: 10px; padding: 11px 21px;
+  border: 2px solid var(--outline); border-radius: 999px; box-shadow: var(--shadow);
+  font-size: 16px; font-weight: 500; background: var(--white); color: var(--ink);
+  transition: transform .15s ease, background .15s ease;
+}
+.button:hover { transform: translateY(-2px); background: var(--tint); }
+.button.primary { background: var(--navy); color: #fff; }
+.button.primary:hover { background: #255381; }
+.actions.compact { gap: 10px; }
+.actions.compact .button { padding: 8px 15px; font-size: 14px; gap: 8px; box-shadow: 0 3px 0 var(--outline); }
+.hero-visual { position: relative; }
+.hero-visual .frame {
+  background: var(--white); border: 2px solid var(--outline); border-radius: 24px;
+  box-shadow: 0 6px 0 var(--outline); overflow: hidden; transform: rotate(.6deg);
+}
+.hero-visual .blob {
+  position: absolute; inset: -26px -20px -30px -24px; z-index: -1;
+  background: #dff0ed; border: 2px solid #bdd9d7; border-radius: 48% 52% 45% 55% / 55% 46% 54% 45%;
+}
+.hero-note { display: block; text-align: center; margin-top: 16px; font: 450 17px var(--display); color: #366770; transform: rotate(-2deg); }
+
+/* Metrics */
+.metrics {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 24px 12px;
+  background: var(--white); border: 2px solid var(--outline); border-radius: 22px; box-shadow: 0 5px 0 #d6e7e5;
+}
+.metric { padding: 0 22px; border-left: 1px solid var(--line); }
+.metric:first-child { border-left: 0; }
+.metric-value { font-size: 39px; font-weight: 500; letter-spacing: -1px; color: var(--navy); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.metric-name { font-size: 12px; font-weight: 800; color: var(--ink); margin-top: 4px; }
+.metric-note { font-size: 11px; color: var(--muted); }
+
+/* Section headings */
+.section-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: end; margin-bottom: 40px; }
+.section-heading.single { grid-template-columns: 1fr; max-width: 820px; }
+.section-heading h2 { font-size: clamp(32px, 3.5vw, 46px); font-weight: 500; letter-spacing: -.8px; margin-top: 12px; }
+.section-heading > p:last-child:not(.eyebrow), .section-heading .lead { font-size: 17px; line-height: 1.65; }
+
+/* Capabilities */
+.capability-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.capability {
+  display: flex; flex-direction: column; padding: 24px; border: 2px solid var(--outline); border-radius: 22px;
+  background: var(--white); box-shadow: var(--shadow-soft);
+}
+.capability:nth-child(2) { background: var(--teal-soft); }
+.capability:nth-child(3) { background: var(--orange-soft); }
+.capability:nth-child(4) { background: #eef1fb; }
+.capability:nth-child(5) { background: #f3f7ea; }
+.capability:nth-child(6) { background: #fdeef0; }
+.capability .tag { font: 600 11px var(--mono); color: var(--orange); }
+.capability h3 { font-size: 22px; font-weight: 500; margin-top: 16px; }
+.capability p { font-size: 15px; margin-top: 10px; flex: 1; }
+.replay-chip {
+  display: flex; align-items: center; gap: 12px; margin-top: 22px; padding: 8px 12px 8px 8px; text-align: left;
+  background: #ffffffc9; border: 1px solid #c4d2da; border-radius: 14px; font-size: 12px; color: var(--muted);
+}
+.replay-chip img { width: 54px; height: 40px; object-fit: cover; border-radius: 8px; flex: none; }
+.replay-chip span { flex: 1; line-height: 1.35; }
+.replay-chip b { color: var(--orange); font-size: 16px; }
+.replay-chip:hover { border-color: var(--outline); }
+
+/* Playback */
+.filters, .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.filters { padding: 6px; background: var(--white); border: 1px solid var(--line); border-radius: 999px; width: fit-content; }
+.chip { border: 0; background: transparent; border-radius: 999px; padding: 6px 14px; font: 500 14px var(--display); color: var(--muted); }
+.chip:hover { color: var(--ink); background: var(--tint); }
+.chip[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.chip .count { font: 600 10px var(--mono); margin-left: 4px; opacity: .7; }
+.playback {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr); margin-top: 20px;
+  background: var(--white); border: 2px solid var(--outline); border-radius: 22px; overflow: hidden; box-shadow: var(--shadow-soft);
+}
+.case-list { list-style: none; margin: 0; padding: 10px; border-right: 1px solid var(--line); max-height: 640px; overflow-y: auto; background: #fbfcfd; }
+.case-list button {
+  display: flex; gap: 12px; align-items: center; width: 100%; padding: 8px; text-align: left;
+  border: 1px solid transparent; border-radius: 12px; background: transparent;
+}
+.case-list button:hover { background: var(--tint); }
+.case-list button[aria-current="true"] { background: #fff4e8; border-color: #f2c79f; }
+.case-list img { width: 64px; height: 48px; object-fit: cover; border-radius: 8px; flex: none; }
+.case-list .t { display: block; font: 500 15px/1.25 var(--display); color: var(--ink); }
+.case-list .m { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.player { display: flex; flex-direction: column; min-width: 0; }
+.player-bar {
+  display: flex; justify-content: space-between; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line);
+  font: 600 11px var(--mono); letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted);
+}
+.player-bar .task { color: var(--orange); }
+.player-media { background: #fbfbfd; }
+.player-media img { width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
+.player-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-top: 1px solid var(--line); }
+.player-foot h3 { font-size: 20px; font-weight: 500; }
+.player-foot p { font-size: 14px; margin-top: 4px; }
+.player-foot p b { color: var(--orange); }
+.small-btn { flex: none; border: 1px solid var(--line); background: var(--white); border-radius: 10px; padding: 6px 12px; font: 500 13px var(--display); color: var(--muted); }
+.small-btn:hover { border-color: var(--outline); color: var(--ink); }
+.overview-figure { margin: 40px 0 0; }
+.video-card video { display: block; width: 100%; height: auto; border-radius: 12px; background: #0e2440; }
+.overview-figure figcaption, .figure-caption { font-size: 14px; color: var(--muted); margin-top: 12px; }
+
+/* Method */
+.figure-card { margin: 0; background: var(--white); border: 2px solid var(--outline); border-radius: 22px; padding: 18px; box-shadow: var(--shadow-soft); }
+.figure-card + .figure-caption { padding-inline: 4px; }
+.enlarge { display: inline-block; margin-top: 10px; font: 600 12px var(--mono); color: var(--orange); }
+.enlarge:hover { text-decoration: underline; }
+.flow { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--outline); border-radius: 22px; overflow: hidden; background: var(--white); }
+.flow li { padding: 25px; border-left: 1px solid var(--line); }
+.flow li:first-child { border-left: 0; }
+.flow .num { font: 600 11px var(--mono); color: var(--orange); }
+.flow h4 { font-size: 18px; font-weight: 500; margin-top: 10px; }
+.flow p { font-size: 14px; margin-top: 8px; }
+.training {
+  display: grid; grid-template-columns: 1fr 1.6fr; gap: 36px; margin-top: 44px; padding: 36px;
+  background: var(--navy); border: 2px solid var(--outline); border-radius: 26px; color: #fff;
+}
+.training .eyebrow { color: #ffb27a; }
+.training h3 { font-size: 34px; font-weight: 500; margin-top: 12px; }
+.training p { color: #d5e7ef; }
+.training > div > p { margin-top: 14px; }
+.stages { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 18px; }
+.stages li { padding-left: 18px; border-left: 2px solid #6a8aa5; }
+.stages h4 { font-size: 19px; font-weight: 500; }
+.stages p { font-size: 14px; margin-top: 4px; }
+.training .figure-card { border-color: #0e2440; box-shadow: none; padding: 14px; align-self: center; }
+
+/* Data */
+.tabs { margin-bottom: 18px; }
+.tabs.boxed { padding: 6px; background: var(--white); border: 2px solid var(--outline); border-radius: 999px; width: fit-content; }
+/* Six full domain names do not fit one row: lay them out 3 x 2, with "All" spanning both rows. */
+.filters, .tabs.domain-tabs { display: grid; grid-template-columns: repeat(3, auto); justify-items: start; border-radius: 22px; }
+.filters { grid-template-columns: auto repeat(3, auto); }
+.filters .chip[data-filter="all"] { grid-row: span 2; align-self: center; }
+.tab { border: 0; background: transparent; border-radius: 999px; padding: 8px 16px; font: 500 15px var(--display); color: var(--ink); }
+.tab:hover { background: var(--tint); }
+.tab[aria-selected="true"] { background: var(--navy); color: #fff; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 18px; }
+.fact { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.fact b { display: block; font: 500 26px var(--display); color: var(--navy); }
+.fact span { font-size: 13px; color: var(--muted); }
+
+/* Results */
+.result-card { background: var(--white); border: 2px solid var(--outline); border-radius: 24px; padding: 30px; box-shadow: var(--shadow-soft); }
+.result-head { display: grid; grid-template-columns: 1.2fr auto 1.4fr; gap: 28px; align-items: center; }
+.result-head h3 { font-size: 28px; font-weight: 500; margin-top: 6px; }
+.big-score { text-align: center; }
+.big-score b { display: block; font: 400 64px/1 var(--display); color: var(--orange); letter-spacing: -2px; font-variant-numeric: tabular-nums; }
+.big-score span { font: 600 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.result-head > p { font-size: 15px; }
+.result-body { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 26px; }
+.panel-box { border: 1px solid var(--line); border-radius: 18px; padding: 20px; background: #fcfdfd; }
+.panel-box h4 { font-size: 17px; font-weight: 500; display: flex; gap: 10px; align-items: center; }
+.panel-box h4 .n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--tint); font: 600 11px var(--mono); color: var(--muted); }
+.panel-box .sub { font-size: 12px; color: var(--muted); margin: 2px 0 14px 36px; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bars li { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) 48px; gap: 12px; align-items: center; padding: 7px 10px; border-radius: 10px; font-size: 14px; }
+.bars li.ours { background: #fff4e8; border: 1px solid #f2c79f; }
+.bars .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars li.ours .name { font-weight: 800; color: var(--orange); }
+.bars .track { height: 6px; border-radius: 3px; background: #edf1f4; overflow: hidden; }
+.bars .fill { display: block; height: 100%; border-radius: 3px; background: #7c95ad; }
+.bars li.ours .fill { background: var(--orange-bright); }
+.bars .val { text-align: right; font: 600 14px var(--mono); }
+.split-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 20px; }
+.split-grid div span { display: block; font-size: 12px; color: var(--muted); }
+.split-grid div b { font: 500 22px var(--display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.split-grid div b.best { color: var(--orange); }
+details.scores { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+details.scores summary { cursor: pointer; font: 500 15px var(--display); }
+.note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+.table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--line); }
+thead th { background: #f4f8fa; font-weight: 700; color: var(--ink); }
+th.method, td.method { text-align: left; position: sticky; left: 0; background: inherit; }
+tbody tr { background: var(--white); }
+tbody tr:last-child td { border-bottom: 0; }
+td.best { font-weight: 800; }
+td.second { text-decoration: underline; text-underline-offset: 3px; }
+tr.ours { background: #fff4e8; }
+tr.ours td.method { font-weight: 800; color: var(--orange); }
+
+/* Citation */
+.cite { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 40px; align-items: start; }
+.bib { position: relative; }
+.bib pre {
+  margin: 0; padding: 22px; overflow-x: auto; border-radius: 20px; background: var(--navy); color: #e8f1f8;
+  border: 2px solid var(--outline); font: 13.5px/1.6 var(--mono); font-variant-ligatures: none;
+}
+.copy { position: absolute; top: 12px; right: 12px; border: 1px solid #ffffff40; background: #ffffff14; color: #fff; border-radius: 10px; padding: 4px 12px; font: 500 13px var(--display); }
+.copy:hover { background: #ffffff26; }
+
+/* Footer */
+footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
+.people { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 18px; }
+.people h4 { font: 600 11px var(--mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--orange); }
+.people p { color: var(--ink); margin-top: 6px; }
+.foot-bar { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 40px; font-size: 14px; color: var(--muted); }
+.foot-bar a { color: var(--orange); }
+.inline-link { color: var(--orange); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Below 1280px the side-by-side hero leaves too little room for the button rows. */
+@media (max-width: 1279px) {
+  .hero { grid-template-columns: 1fr; gap: 48px; }
+  .hero-visual { max-width: 720px; }
+}
+@media (max-width: 1080px) {
+  .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-value { font-size: 32px; }
+  .result-head { grid-template-columns: 1fr auto; }
+  .result-head > p { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
+  .shell { width: calc(100% - 32px); }
+  .site-header { padding-inline: 16px; gap: 12px; height: 64px; }
+  .site-header nav { display: none; }
+  .header-pill { margin-left: auto; }
+  .pad { padding-block: 60px; }
+  .hero { grid-template-columns: 1fr; padding-block: 38px; gap: 48px; }
+  .hero-headline { font-size: clamp(34px, 9vw, 54px); }
+  .hero-description { font-size: 17px; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; overflow: hidden; }
+  .metric { padding: 18px; border-left: 0; border-top: 1px solid var(--line); }
+  .metric:nth-child(-n+2) { border-top: 0; }
+  .metric:nth-child(even) { border-left: 1px solid var(--line); }
+  .metric-value { font-size: 30px; }
+  .section-heading { grid-template-columns: 1fr; gap: 14px; }
+  .capability-grid, .flow, .training, .result-body, .cite, .people { grid-template-columns: minmax(0, 1fr); }
+  .flow li { border-left: 0; border-top: 1px solid var(--line); }
+  .flow li:first-child { border-top: 0; }
+  .training { padding: 24px; }
+  .facts { grid-template-columns: repeat(2, 1fr); }
+  .playback { grid-template-columns: 1fr; }
+  .case-list { display: flex; gap: 6px; max-height: none; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .case-list li { flex: none; }
+  .case-list button { width: auto; flex-direction: column; align-items: flex-start; padding: 6px; }
+  .case-list .t { font-size: 13px; max-width: 96px; }
+  .case-list .m { display: none; }
+  .filters, .tabs.boxed { border-radius: 18px; }
+  .filters, .tabs.domain-tabs { grid-template-columns: minmax(0, 1fr); }
+  .filters .chip[data-filter="all"] { grid-row: auto; justify-self: start; }
+  .result-card { padding: 20px; }
+  .result-head { grid-template-columns: 1fr; }
+  .big-score { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .button { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="brand" href="#overview" aria-label="Xiaomi-Lens-0 home">
+    <span class="brand-mark" aria-hidden="true">mi</span>
+    <span class="wordmark project-name">Xiaomi-Lens<span class="accent">-0</span></span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#overview">Overview</a>
+    <a href="#video">Video</a>
+    <a href="#capabilities">Capabilities</a>
+    <a href="#samples">Samples</a>
+    <a href="#method">Method</a>
+    <a href="#data">Data</a>
+    <a href="#results">Results</a>
+    <a href="#cite">Cite</a>
+  </nav>
+  <a class="header-pill" href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0">GitHub ↗</a>
+</header>
+
+<main>
+<section id="overview">
+ <div class="shell">
+  <div class="hero">
+    <div>
+      <p class="eyebrow">SeerRay Lab &nbsp;/&nbsp; 4B grounding model</p>
+      <h1 class="project-name">Xiaomi-Lens<span class="accent">-0</span></h1>
+      <p class="hero-headline">Locate. Segment.<br><em>Reason.</em></p>
+      <p class="hero-description">Pixel-level grounding and visual reasoning, together in a compact <strong>4B multimodal large language model</strong> that predicts masks from the same backbone it uses to answer.</p>
+      <div class="actions">
+        <a class="button primary" href="#results">Explore results ↗</a>
+        <a class="button" href="#video">Watch it work ↓</a>
+        <a class="button" href="#cite">Cite this work ↓</a>
+      </div>
+      <p class="hero-description">Release status (2026-10-15): model and LensBench downloads currently require access. See the repository README for availability.</p>
+      <div class="actions compact">
+        <a class="button" href="https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0">Model weights ↗</a>
+        <a class="button" href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0">Code ↗</a>
+        <a class="button" href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench ↗</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="blob" aria-hidden="true"></div>
+      <div class="frame">
+        <img src="assets/figures/hero_lens.svg" width="640" height="400"
+             alt="Illustration: a lens scans a tabletop scene for the query “what could package a gift?”, reasons briefly, then emits two mask tokens and draws a box and an orange mask on each of two gift boxes.">
+      </div>
+      <span class="hero-note">ask · reason · locate · segment ↑</span>
+    </div>
+  </div>
+
+  <div class="metrics" aria-label="Key results">
+    <div class="metric"><div class="metric-value">81.4</div><div class="metric-name">Referring Expression Segmentation</div><div class="metric-note">mean cIoU, 8 RefCOCO-family splits</div></div>
+    <div class="metric"><div class="metric-value">94.6</div><div class="metric-name">Referring Expression Comprehension</div><div class="metric-note">Pres@0.5, RefCOCO val</div></div>
+    <div class="metric"><div class="metric-value">68.0</div><div class="metric-name">ReasonSeg test</div><div class="metric-note">gIoU</div></div>
+    <div class="metric"><div class="metric-value">+6.8</div><div class="metric-name">CountQA over backbone</div><div class="metric-note">50.6 vs. 43.8 for Qwen3.5-4B</div></div>
+    <div class="metric"><div class="metric-value">8,000</div><div class="metric-name">LensBench samples</div><div class="metric-note">4 domains, open on Hugging Face</div></div>
+  </div>
+
+  <figure class="overview-figure" id="video">
+    <div class="figure-card video-card">
+      <video controls preload="metadata" playsinline poster="assets/video/overview_poster.jpg" width="1920" height="1080">
+        <source src="assets/video/xiaomi_lens_0_overview.mp4" type="video/mp4">
+        Your browser cannot play this video. <a href="assets/video/xiaomi_lens_0_overview.mp4">Download the MP4</a>.
+      </video>
+    </div>
+  </figure>
+ </div>
+</section>
+
+<section id="capabilities" class="pad">
+  <div class="shell">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">01 / Capabilities</p>
+        <h2>What it does.</h2>
+      </div>
+      <p>Each generated <code>&lt;|mask|&gt;</code> token is decoded into a mask, so the model can point at what it talks about: in a final answer, or in the middle of its reasoning.</p>
+    </div>
+    <div class="capability-grid">
+      <article class="capability"><span class="tag">[ 01 ]</span><h3>Referring Expression Comprehension</h3><p>Finds the object a phrase describes and returns its bounding box, from appearance, action, size, or position.</p><button class="replay-chip" type="button" data-jump="rec_bear"><img src="assets/samples/thumbs/rec_bear.jpg" width="240" height="180" alt="" loading="lazy"><span>Dark brown bear · replay example</span><b aria-hidden="true">↘</b></button></article>
+      <article class="capability"><span class="tag">[ 02 ]</span><h3>Referring Expression Segmentation</h3><p>Returns a pixel mask for the referred object, decoded from the visual latent of a generated <code>&lt;|mask|&gt;</code> token.</p><button class="replay-chip" type="button" data-jump="res_grapefruit"><img src="assets/samples/thumbs/res_grapefruit.jpg" width="240" height="180" alt="" loading="lazy"><span>Grapefruit wedge · replay example</span><b aria-hidden="true">↘</b></button></article>
+      <article class="capability"><span class="tag">[ 03 ]</span><h3>Multi-Instance Grounding</h3><p>Lists every instance of a category in crowded scenes, each with its own box and mask.</p><button class="replay-chip" type="button" data-jump="coco_oranges"><img src="assets/samples/thumbs/coco_oranges.jpg" width="240" height="180" alt="" loading="lazy"><span>Oranges · replay example</span><b aria-hidden="true">↘</b></button></article>
+      <article class="capability"><span class="tag">[ 04 ]</span><h3>Reasoning Segmentation</h3><p>Resolves functional and implicit requests, such as what could package a gift, after a short reasoning trace.</p><button class="replay-chip" type="button" data-jump="reasonseg_gifts"><img src="assets/samples/thumbs/reasonseg_gifts.jpg" width="240" height="180" alt="" loading="lazy"><span>Gift packaging · replay example</span><b aria-hidden="true">↘</b></button></article>
+      <article class="capability"><span class="tag">[ 05 ]</span><h3>Embodied Referring</h3><p>Picks the object a person asks to be handed in cluttered scenes, combining category, appearance, and position.</p><button class="replay-chip" type="button" data-jump="roborefit_pepsi"><img src="assets/samples/thumbs/roborefit_pepsi.jpg" width="240" height="180" alt="" loading="lazy"><span>Pepsi can · replay example</span><b aria-hidden="true">↘</b></button></article>
+      <article class="capability"><span class="tag">[ 06 ]</span><h3>Fine-Grained Perception</h3><p>Thinks with visual latents: grounds each region it refers to while counting or answering high-resolution questions.</p><button class="replay-chip" type="button" data-jump="countqa_leaves"><img src="assets/samples/thumbs/countqa_leaves.jpg" width="240" height="180" alt="" loading="lazy"><span>Leaves · replay example</span><b aria-hidden="true">↘</b></button></article>
+    </div>
+  </div>
+</section>
+
+<section id="samples" class="pad tinted">
+  <div class="shell">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">02 / Sample playback</p>
+        <h2>Explore model outputs.</h2>
+      </div>
+      <p>Six domains, four recorded cases each. Pick one to replay its output; boxes and masks appear as the corresponding tokens are generated.</p>
+    </div>
+    <div class="filters" role="group" aria-label="Filter samples by domain">
+      <button class="chip" type="button" data-filter="all" aria-pressed="true">All<span class="count">24</span></button>
+      <button class="chip" type="button" data-filter="rec" aria-pressed="false">Referring Expression Comprehension<span class="count">4</span></button>
+      <button class="chip" type="button" data-filter="res" aria-pressed="false">Referring Expression Segmentation<span class="count">4</span></button>
+      <button class="chip" type="button" data-filter="multi" aria-pressed="false">Multi-Instance Grounding<span class="count">4</span></button>
+      <button class="chip" type="button" data-filter="reason" aria-pressed="false">Reasoning Segmentation<span class="count">4</span></button>
+      <button class="chip" type="button" data-filter="embodied" aria-pressed="false">Embodied Referring<span class="count">4</span></button>
+      <button class="chip" type="button" data-filter="perception" aria-pressed="false">Fine-Grained Perception<span class="count">4</span></button>
+    </div>
+    <div class="playback">
+      <ul class="case-list">
+        <li><button type="button" data-id="rec_bear" data-group="rec" data-gif="assets/samples/rec_bear.gif" data-task="Referring Expression Comprehension · RefCOCO" data-title="Dark brown bear" data-query="“dark brown bear at left”" data-alt="Recorded output for referring expression comprehension: dark brown bear at left" aria-current="true"><img src="assets/samples/thumbs/rec_bear.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Dark brown bear</span><span class="m">Referring Expression Comprehension · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="rec_phone" data-group="rec" data-gif="assets/samples/rec_phone.gif" data-task="Referring Expression Comprehension · RefCOCO" data-title="Boy with a phone" data-query="“boy looking at phone”" data-alt="Recorded output for referring expression comprehension: boy looking at phone" aria-current="false"><img src="assets/samples/thumbs/rec_phone.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Boy with a phone</span><span class="m">Referring Expression Comprehension · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="rec_spoon" data-group="rec" data-gif="assets/samples/rec_spoon.gif" data-task="Referring Expression Comprehension · RefCOCO" data-title="Smallest spoon" data-query="“smallest wooden spoon of the group”" data-alt="Recorded output for referring expression comprehension: smallest wooden spoon of the group" aria-current="false"><img src="assets/samples/thumbs/rec_spoon.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Smallest spoon</span><span class="m">Referring Expression Comprehension · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="rec_baseball" data-group="rec" data-gif="assets/samples/rec_baseball.gif" data-task="Referring Expression Comprehension · RefCOCO" data-title="Runner behind the pitcher" data-query="“the player shown running behind the pitcher”" data-alt="Recorded output for referring expression comprehension: the player shown running behind the pitcher" aria-current="false"><img src="assets/samples/thumbs/rec_baseball.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Runner behind the pitcher</span><span class="m">Referring Expression Comprehension · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="res_grapefruit" data-group="res" data-gif="assets/samples/res_grapefruit.gif" data-task="Referring Expression Segmentation · RefCOCO" data-title="Grapefruit wedge" data-query="“second wedge grapefruit from left to right”" data-alt="Recorded output for referring expression segmentation: second wedge grapefruit from left to right" aria-current="false"><img src="assets/samples/thumbs/res_grapefruit.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Grapefruit wedge</span><span class="m">Referring Expression Segmentation · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="res_laptop" data-group="res" data-gif="assets/samples/res_laptop.gif" data-task="Referring Expression Segmentation · RefCOCO" data-title="Laptop with a sign" data-query="“laptop with small white windows sign”" data-alt="Recorded output for referring expression segmentation: laptop with small white windows sign" aria-current="false"><img src="assets/samples/thumbs/res_laptop.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Laptop with a sign</span><span class="m">Referring Expression Segmentation · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="res_kite" data-group="res" data-gif="assets/samples/res_kite.gif" data-task="Referring Expression Segmentation · RefCOCO" data-title="Kite on the grass" data-query="“a red, black, and white kite lying on the grass”" data-alt="Recorded output for referring expression segmentation: a red, black, and white kite lying on the grass" aria-current="false"><img src="assets/samples/thumbs/res_kite.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Kite on the grass</span><span class="m">Referring Expression Segmentation · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="res_cow" data-group="res" data-gif="assets/samples/res_cow.gif" data-task="Referring Expression Segmentation · RefCOCO" data-title="Brown cow" data-query="“a large brown cow standing in the grass”" data-alt="Recorded output for referring expression segmentation: a large brown cow standing in the grass" aria-current="false"><img src="assets/samples/thumbs/res_cow.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Brown cow</span><span class="m">Referring Expression Segmentation · RefCOCO</span></span></button></li>
+        <li><button type="button" data-id="coco_bottles" data-group="multi" data-gif="assets/samples/coco_bottles.gif" data-task="Multi-Instance Grounding · COCO 2017" data-title="Bottles" data-query="“all bottles”" data-alt="Recorded output for multi-instance grounding: all bottles" aria-current="false"><img src="assets/samples/thumbs/coco_bottles.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Bottles</span><span class="m">Multi-Instance Grounding · COCO 2017</span></span></button></li>
+        <li><button type="button" data-id="coco_oranges" data-group="multi" data-gif="assets/samples/coco_oranges.gif" data-task="Multi-Instance Grounding · COCO 2017" data-title="Oranges" data-query="“all oranges”" data-alt="Recorded output for multi-instance grounding: all oranges" aria-current="false"><img src="assets/samples/thumbs/coco_oranges.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Oranges</span><span class="m">Multi-Instance Grounding · COCO 2017</span></span></button></li>
+        <li><button type="button" data-id="coco_people" data-group="multi" data-gif="assets/samples/coco_people.gif" data-task="Multi-Instance Grounding · COCO 2017" data-title="People" data-query="“all people”" data-alt="Recorded output for multi-instance grounding: all people" aria-current="false"><img src="assets/samples/thumbs/coco_people.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">People</span><span class="m">Multi-Instance Grounding · COCO 2017</span></span></button></li>
+        <li><button type="button" data-id="coco_surfboards" data-group="multi" data-gif="assets/samples/coco_surfboards.gif" data-task="Multi-Instance Grounding · COCO 2017" data-title="Surfboards" data-query="“all surfboards”" data-alt="Recorded output for multi-instance grounding: all surfboards" aria-current="false"><img src="assets/samples/thumbs/coco_surfboards.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Surfboards</span><span class="m">Multi-Instance Grounding · COCO 2017</span></span></button></li>
+        <li><button type="button" data-id="reasonseg_citrus" data-group="reason" data-gif="assets/samples/reasonseg_citrus.gif" data-task="Reasoning Segmentation · ReasonSeg" data-title="Tangy condiment" data-query="“What can be squeezed onto seafood as a tangy flavor enhancer?”" data-alt="Recorded output for reasoning segmentation: What can be squeezed onto seafood as a tangy flavor enhancer?" aria-current="false"><img src="assets/samples/thumbs/reasonseg_citrus.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Tangy condiment</span><span class="m">Reasoning Segmentation · ReasonSeg</span></span></button></li>
+        <li><button type="button" data-id="reasonseg_gifts" data-group="reason" data-gif="assets/samples/reasonseg_gifts.gif" data-task="Reasoning Segmentation · ReasonSeg" data-title="Gift packaging" data-query="“What could be used to package a gift?”" data-alt="Recorded output for reasoning segmentation: What could be used to package a gift?" aria-current="false"><img src="assets/samples/thumbs/reasonseg_gifts.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Gift packaging</span><span class="m">Reasoning Segmentation · ReasonSeg</span></span></button></li>
+        <li><button type="button" data-id="reasonseg_mower" data-group="reason" data-gif="assets/samples/reasonseg_mower.gif" data-task="Reasoning Segmentation · ReasonSeg" data-title="Lawn care" data-query="“What would be useful for keeping a lawn well-groomed?”" data-alt="Recorded output for reasoning segmentation: What would be useful for keeping a lawn well-groomed?" aria-current="false"><img src="assets/samples/thumbs/reasonseg_mower.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Lawn care</span><span class="m">Reasoning Segmentation · ReasonSeg</span></span></button></li>
+        <li><button type="button" data-id="reasonseg_satellite" data-group="reason" data-gif="assets/samples/reasonseg_satellite.gif" data-task="Reasoning Segmentation · ReasonSeg" data-title="Orbiting object" data-query="“What object orbits the Earth to complete missions?”" data-alt="Recorded output for reasoning segmentation: What object orbits the Earth to complete missions?" aria-current="false"><img src="assets/samples/thumbs/reasonseg_satellite.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Orbiting object</span><span class="m">Reasoning Segmentation · ReasonSeg</span></span></button></li>
+        <li><button type="button" data-id="roborefit_book" data-group="embodied" data-gif="assets/samples/roborefit_book.gif" data-task="Embodied Referring · RoboRefIt" data-title="Old book" data-query="“Hand me the old book with a black and white cover”" data-alt="Recorded output for embodied referring: Hand me the old book with a black and white cover" aria-current="false"><img src="assets/samples/thumbs/roborefit_book.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Old book</span><span class="m">Embodied Referring · RoboRefIt</span></span></button></li>
+        <li><button type="button" data-id="roborefit_cleanser" data-group="embodied" data-gif="assets/samples/roborefit_cleanser.gif" data-task="Embodied Referring · RoboRefIt" data-title="Facial cleanser" data-query="“Hand me the facial cleanser on the left”" data-alt="Recorded output for embodied referring: Hand me the facial cleanser on the left" aria-current="false"><img src="assets/samples/thumbs/roborefit_cleanser.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Facial cleanser</span><span class="m">Embodied Referring · RoboRefIt</span></span></button></li>
+        <li><button type="button" data-id="roborefit_cup" data-group="embodied" data-gif="assets/samples/roborefit_cup.gif" data-task="Embodied Referring · RoboRefIt" data-title="White cup" data-query="“Pass me the white cup on the left”" data-alt="Recorded output for embodied referring: Pass me the white cup on the left" aria-current="false"><img src="assets/samples/thumbs/roborefit_cup.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">White cup</span><span class="m">Embodied Referring · RoboRefIt</span></span></button></li>
+        <li><button type="button" data-id="roborefit_pepsi" data-group="embodied" data-gif="assets/samples/roborefit_pepsi.gif" data-task="Embodied Referring · RoboRefIt" data-title="Pepsi can" data-query="“Hand me the can of Pepsi on the right”" data-alt="Recorded output for embodied referring: Hand me the can of Pepsi on the right" aria-current="false"><img src="assets/samples/thumbs/roborefit_pepsi.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Pepsi can</span><span class="m">Embodied Referring · RoboRefIt</span></span></button></li>
+        <li><button type="button" data-id="countqa_climbing_stones" data-group="perception" data-gif="assets/samples/countqa_climbing_stones.gif" data-task="Fine-Grained Perception · CountQA" data-title="Climbing stones" data-query="“How many climbing stones are there?” → &lt;b&gt;5&lt;/b&gt;" data-alt="Recorded output for fine-grained perception: How many climbing stones are there?" aria-current="false"><img src="assets/samples/thumbs/countqa_climbing_stones.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Climbing stones</span><span class="m">Fine-Grained Perception · CountQA</span></span></button></li>
+        <li><button type="button" data-id="countqa_leaves" data-group="perception" data-gif="assets/samples/countqa_leaves.gif" data-task="Fine-Grained Perception · CountQA" data-title="Leaves" data-query="“How many leaves are there?” → &lt;b&gt;6&lt;/b&gt;" data-alt="Recorded output for fine-grained perception: How many leaves are there?" aria-current="false"><img src="assets/samples/thumbs/countqa_leaves.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Leaves</span><span class="m">Fine-Grained Perception · CountQA</span></span></button></li>
+        <li><button type="button" data-id="hrbench_chairs_bicycles" data-group="perception" data-gif="assets/samples/hrbench_chairs_bicycles.gif" data-task="Fine-Grained Perception · HR-Bench" data-title="Chair and bicycles" data-query="“Where is the chair relative to the bicycles?” → &lt;b&gt;To the left&lt;/b&gt;" data-alt="Recorded output for fine-grained perception: Where is the chair relative to the bicycles?" aria-current="false"><img src="assets/samples/thumbs/hrbench_chairs_bicycles.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Chair and bicycles</span><span class="m">Fine-Grained Perception · HR-Bench</span></span></button></li>
+        <li><button type="button" data-id="hrbench_trailer" data-group="perception" data-gif="assets/samples/hrbench_trailer.gif" data-task="Fine-Grained Perception · HR-Bench" data-title="Trailer color" data-query="“What&amp;#x27;s the color of the trailer?” → &lt;b&gt;Orange&lt;/b&gt;" data-alt="Recorded output for fine-grained perception: What&#x27;s the color of the trailer?" aria-current="false"><img src="assets/samples/thumbs/hrbench_trailer.jpg" width="240" height="180" alt="" loading="lazy"><span><span class="t">Trailer color</span><span class="m">Fine-Grained Perception · HR-Bench</span></span></button></li>
+      </ul>
+      <div class="player" id="player">
+        <div class="player-bar"><span class="task" id="player-task">Referring Expression Comprehension · RefCOCO</span><span>Recorded output · replay</span></div>
+        <div class="player-media"><img id="player-img" src="assets/samples/rec_bear.gif" loading="lazy" width="1280" height="720" alt="Recorded output for referring expression comprehension: dark brown bear at left"></div>
+        <div class="player-foot">
+          <div><h3 id="player-title">Dark brown bear</h3><p id="player-query">“dark brown bear at left”</p></div>
+          <button class="small-btn" type="button" id="replay">Replay ↻</button>
+        </div>
+      </div>
+    </div>
+    <figure class="overview-figure">
+      <div class="figure-card"><img data-lazy="assets/samples/showcase_all_domains.gif" width="2070" height="1226" alt="Grid of recorded outputs across all six task domains."></div>
+      <figcaption>All six domains at a glance.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="method" class="pad">
+  <div class="shell">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">03 / Method</p>
+        <h2>One backbone for words and masks.</h2>
+      </div>
+      <p>Xiaomi-Lens-0 extends Qwen3.5-4B with a lightweight mask decoder. Joint language and mask training supervises the shared representation used for both spatial predictions and textual answers.</p>
+    </div>
+    <figure class="figure-card">
+      <img src="assets/figures/architecture.png" width="2000" height="744" loading="lazy"
+           alt="Architecture: text and visual tokens enter the language model backbone; mask-token states go to a mask decoder head that combines them with pre-merge visual features.">
+    </figure>
+    <p class="figure-caption">The language model consumes spatially merged visual tokens. Each generated <code>&lt;|mask|&gt;</code> token queries the encoder's pre-merge features through the mask decoder. <a class="enlarge" href="assets/figures/architecture.png" target="_blank" rel="noopener">Open full size ↗</a></p>
+    <ol class="flow">
+      <li>
+        <span class="num">01</span>
+        <h4>Mask token → visual latent</h4>
+        <p>The contextual state of each <code>&lt;|mask|&gt;</code> token represents a target region given the image, instruction, and preceding response.</p>
+      </li>
+      <li>
+        <span class="num">02</span>
+        <h4>One pre-merge feature grid</h4>
+        <p>The decoder reads a single feature grid from the vision encoder before spatial merging. It needs no separate segmentation encoder or multi-scale fusion.</p>
+      </li>
+      <li>
+        <span class="num">03</span>
+        <h4>Lightweight decoder</h4>
+        <p>Patch-wise compatibility scores between the latent and the grid are reassembled and upsampled into a mask.</p>
+      </li>
+    </ol>
+    <div class="training">
+      <div>
+        <p class="eyebrow">Training recipe</p>
+        <h3>Two stages.</h3>
+        <p>Both stages mix in-house data with public segmentation, referring, and reasoning datasets.</p>
+        <ol class="stages">
+          <li><h4>Stage 1 · Mask decoder pretraining</h4><p>With the MLLM backbone frozen, the decoder learns to read spatial information from fixed pre-merge features.</p></li>
+          <li><h4>Stage 2 · Supervised fine-tuning</h4><p>The backbone is unfrozen and trained jointly with the decoder, so mask supervision updates the shared visual features alongside next-token supervision.</p></li>
+        </ol>
+      </div>
+      <figure class="figure-card">
+        <img src="assets/figures/training_recipe.png" width="2000" height="526" loading="lazy" alt="Donut charts of public and in-house training data for Stage 1 and Stage 2, with per-dataset sample counts.">
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="data" class="pad tinted">
+  <div class="shell">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">04 / Data &amp; LensBench</p>
+        <h2>Data for grounding and visual reasoning.</h2>
+      </div>
+      <p>We construct referring-expression data and grounded reasoning traces that link intermediate region references to object masks, and introduce <a class="inline-link" href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench</a>, an open benchmark for segmentation from explicit and implicit instructions.</p>
+    </div>
+    <div class="tabs boxed" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="data-res">Referring Expression Segmentation data</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="data-vqa">VQA data</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="data-lens">LensBench</button>
+    </div>
+    <div id="data-res" role="tabpanel">
+      <figure class="figure-card"><img src="assets/figures/segmentation_data_pipeline.png" width="2000" height="973" loading="lazy" alt="Referring expression segmentation data pipeline: visual grounding, instruction synthesis, and consistency filtering."></figure>
+      <p class="figure-caption">(a) Candidate objects are localized, their descriptions are checked against image crops, and masks are generated. (b) The masked view and the original image guide referring-instruction synthesis. (c) Re-grounding and contextual verification check that each instruction identifies its target.</p>
+    </div>
+    <div id="data-vqa" role="tabpanel" hidden>
+      <figure class="figure-card"><img data-lazy="assets/figures/vqa_data_pipeline.png" width="2000" height="787" alt="VQA data pipeline: question generation followed by rule-based and model-based filtering."></figure>
+      <p class="figure-caption">(a) After image and region screening, an MLLM generates question–answer pairs with multiple-choice or numeric answers. (b) Rule-based filters remove flawed questions, options are shuffled, and an independent checker verifies the answers.</p>
+    </div>
+    <div id="data-lens" role="tabpanel" hidden>
+      <figure class="figure-card"><img data-lazy="assets/figures/lensbench_data_pipeline.png" width="2000" height="1339" alt="LensBench design across four domains and its construction pipeline."></figure>
+      <div class="facts">
+        <div class="fact"><b>4</b><span>domains: General, Aerial, Driving, Panoramic</span></div>
+        <div class="fact"><b>500</b><span>evaluation units per domain</span></div>
+        <div class="fact"><b>2 × 2</b><span>Single/Multiple targets × Explicit/Implicit instructions</span></div>
+        <div class="fact"><b>8,000</b><span>evaluation samples in total</span></div>
+      </div>
+      <div class="actions"><a class="button" href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench on Hugging Face ↗</a></div>
+    </div>
+  </div>
+</section>
+
+<section id="results" class="pad">
+  <div class="shell">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">05 / Benchmarks</p>
+        <h2>Evaluation results.</h2>
+      </div>
+      <p>The same six domains, in the same order. Select one to compare the reported scores. All scores are percentages; higher is better.</p>
+    </div>
+    <div class="tabs boxed domain-tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="result-rec">Referring Expression Comprehension</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="result-res">Referring Expression Segmentation</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="result-multi">Multi-Instance Grounding</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="result-reason">Reasoning Segmentation</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="result-embodied">Embodied Referring</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="result-perception">Fine-Grained Perception</button>
+    </div>
+    <div class="result-card" id="result-rec" role="tabpanel">
+      <div class="result-head">
+        <div><p class="eyebrow">01 · Referring Expression Comprehension</p><h3>RefCOCO / RefCOCO+ / RefCOCOg</h3></div>
+        <div class="big-score"><b>92.9</b><span>Xiaomi-Lens-0 · mean Pres@0.5 · 8 splits</span></div>
+        <p>Ranks first on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits.</p>
+      </div>
+      <div class="result-body">
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean Pres@0.5 · 8 splits · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">92.9</span></li><li><span class="name">Youtu-VL<sub>4B</sub></span><span class="track"><span class="fill" style="width:87.1%"></span></span><span class="val">91.8</span></li><li><span class="name">Florence-2</span><span class="track"><span class="fill" style="width:78.9%"></span></span><span class="val">91.1</span></li><li><span class="name">Qwen3-VL-Seg<sub>4B</sub></span><span class="track"><span class="fill" style="width:62.4%"></span></span><span class="val">89.7</span></li><li><span class="name">InternVL-3.5<sub>4B</sub></span><span class="track"><span class="fill" style="width:58.9%"></span></span><span class="val">89.4</span></li><li><span class="name">MLLMSeg<sub>InternVL2.5-4B</sub></span><span class="track"><span class="fill" style="width:44.8%"></span></span><span class="val">88.2</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>RefCOCO Val</span><b class="best">94.6</b></div><div><span>RefCOCO TestA</span><b class="best">96.2</b></div><div><span>RefCOCO TestB</span><b class="best">92.3</b></div><div><span>RefCOCO+ Val</span><b class="best">92.1</b></div><div><span>RefCOCO+ TestA</span><b class="best">94.9</b></div><div><span>RefCOCO+ TestB</span><b class="best">88.5</b></div><div><span>RefCOCOg Val</span><b class="best">92.5</b></div><div><span>RefCOCOg Test</span><b class="">92.4</b></div></div></div>
+      </div>
+      <details class="scores"><summary>View detailed scores</summary>
+        <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="2" class="method">Method</th>
+<th colspan="3" class="group">RefCOCO</th>
+<th colspan="3" class="group">RefCOCO+</th>
+<th colspan="2" class="group">RefCOCOg</th>
+</tr>
+<tr><th>Val</th><th>TestA</th><th>TestB</th><th>Val</th><th>TestA</th><th>TestB</th><th>Val</th><th>Test</th></tr>
+</thead><tbody>
+<tr><td class="method">Grounding-DINO-L</td><td>90.6</td><td>93.2</td><td>88.2</td><td>82.8</td><td>89.0</td><td>75.9</td><td>86.1</td><td>87.0</td></tr>
+<tr><td class="method">Florence-2</td><td>93.4</td><td class="second">95.3</td><td class="second">92.0</td><td>88.3</td><td>92.9</td><td>83.6</td><td>91.2</td><td>91.7</td></tr>
+<tr><td class="method">LISA<sub>LLaVA-7B</sub></td><td>85.4</td><td>88.8</td><td>82.6</td><td>74.2</td><td>79.5</td><td>68.4</td><td>79.3</td><td>80.4</td></tr>
+<tr><td class="method">GSVA<sub>Vicuna-7B</sub></td><td>86.3</td><td>89.2</td><td>83.8</td><td>72.8</td><td>78.8</td><td>68.0</td><td>81.6</td><td>81.8</td></tr>
+<tr><td class="method">PixelLM<sub>LLaVA-7B</sub></td><td>89.8</td><td>92.2</td><td>86.4</td><td>83.2</td><td>87.0</td><td>78.9</td><td>84.6</td><td>86.0</td></tr>
+<tr><td class="method">VisionLLM v2<sub>Vicuna-7B</sub></td><td>87.9</td><td>91.2</td><td>84.3</td><td>77.6</td><td>83.8</td><td>70.2</td><td>82.9</td><td>84.1</td></tr>
+<tr><td class="method">Text4Seg<sub>InternVL2-8B</sub></td><td>90.3</td><td>93.4</td><td>87.5</td><td>85.2</td><td>89.9</td><td>79.5</td><td>85.4</td><td>85.4</td></tr>
+<tr><td class="method">UFO<sub>InternVL2-8B</sub></td><td>91.4</td><td>93.8</td><td>88.2</td><td>85.7</td><td>90.7</td><td>79.7</td><td>86.8</td><td>87.4</td></tr>
+<tr><td class="method">MLLMSeg<sub>InternVL2.5-4B</sub></td><td>91.6</td><td>93.3</td><td>87.6</td><td>86.0</td><td>90.0</td><td>79.8</td><td>88.3</td><td>88.6</td></tr>
+<tr><td class="method">InternVL-3.5<sub>4B</sub></td><td>92.5</td><td>94.3</td><td>88.2</td><td>87.6</td><td>92.3</td><td>81.6</td><td>89.6</td><td>89.3</td></tr>
+<tr><td class="method">Qwen2.5-VL<sub>3B</sub></td><td>89.1</td><td>91.7</td><td>84.0</td><td>82.4</td><td>88.0</td><td>74.1</td><td>85.2</td><td>85.7</td></tr>
+<tr><td class="method">Qwen3-VL<sub>4B</sub></td><td>90.7</td><td>92.2</td><td>86.7</td><td>82.9</td><td>89.4</td><td>75.6</td><td>87.3</td><td>87.7</td></tr>
+<tr><td class="method">Qwen3-VL-Seg<sub>4B</sub></td><td>92.7</td><td>94.6</td><td>89.8</td><td>87.8</td><td>92.1</td><td>82.2</td><td>89.1</td><td>89.0</td></tr>
+<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>90.4</td><td>92.3</td><td>87.1</td><td>84.8</td><td>88.9</td><td>79.1</td><td>88.0</td><td>88.2</td></tr>
+<tr><td class="method">Youtu-VL<sub>4B</sub></td><td class="second">93.6</td><td>95.2</td><td>90.8</td><td class="second">90.1</td><td class="second">93.9</td><td class="second">85.4</td><td class="second">92.2</td><td class="best">92.9</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td class="best">94.6</td><td class="best">96.2</td><td class="best">92.3</td><td class="best">92.1</td><td class="best">94.9</td><td class="best">88.5</td><td class="best">92.5</td><td class="second">92.4</td></tr>
+</tbody></table></div>
+<h4 style="margin-top:22px;font-size:17px">RefCOCO-family box F1 (detail)</h4><p class="note">F1@mIoU is the mean F1 over IoU thresholds from 0.50 to 0.95 in steps of 0.05.</p><div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="2" class="method">Method</th>
+<th colspan="3" class="group">RefCOCO</th>
+<th colspan="3" class="group">RefCOCO+</th>
+<th colspan="3" class="group">RefCOCOg</th>
+</tr>
+<tr><th>F1@0.50</th><th>F1@0.95</th><th>F1@mIoU</th><th>F1@0.50</th><th>F1@0.95</th><th>F1@mIoU</th><th>F1@0.50</th><th>F1@0.95</th><th>F1@mIoU</th></tr>
+</thead><tbody>
+<tr><td class="method">GroundingDINO</td><td>51.2</td><td>23.3</td><td>44.3</td><td>49.2</td><td>20.9</td><td>41.4</td><td>58.0</td><td>23.2</td><td>49.7</td></tr>
+<tr><td class="method">Rex-Omni</td><td>84.4</td><td>32.9</td><td>71.4</td><td>76.9</td><td>29.5</td><td>64.1</td><td>84.7</td><td>34.7</td><td>72.3</td></tr>
+<tr><td class="method">LocateAnything Fast</td><td>92.5</td><td>44.0</td><td>80.6</td><td>84.4</td><td>39.5</td><td>73.1</td><td>88.5</td><td>40.7</td><td>76.2</td></tr>
+<tr><td class="method">LocateAnything Hybrid</td><td>92.7</td><td>44.3</td><td>81.4</td><td>85.8</td><td>40.6</td><td>75.1</td><td>89.4</td><td>41.5</td><td>77.7</td></tr>
+<tr><td class="method">LocateAnything Slow NTP</td><td>92.4</td><td>38.4</td><td>80.2</td><td>85.2</td><td>35.7</td><td>73.9</td><td>88.7</td><td>35.6</td><td>76.1</td></tr>
+<tr><td class="method">Qwen2.5-VL<sub>7B</sub></td><td>82.4</td><td>17.7</td><td>66.9</td><td>73.0</td><td>16.4</td><td>59.3</td><td>75.3</td><td>15.6</td><td>60.3</td></tr>
+<tr><td class="method">Qwen3-VL<sub>2B</sub></td><td>88.3</td><td>26.7</td><td>72.4</td><td>81.2</td><td>24.3</td><td>66.5</td><td>85.9</td><td>25.7</td><td>69.8</td></tr>
+<tr><td class="method">Qwen3-VL<sub>4B</sub></td><td>92.1</td><td>32.8</td><td>77.6</td><td>86.8</td><td>30.9</td><td>73.4</td><td>88.8</td><td>32.3</td><td>74.7</td></tr>
+<tr><td class="method">Qwen3-VL<sub>8B</sub></td><td>91.1</td><td>29.9</td><td>75.8</td><td>86.4</td><td>29.0</td><td>72.0</td><td>88.7</td><td>28.8</td><td>73.3</td></tr>
+<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>90.1</td><td>29.1</td><td>74.5</td><td>84.1</td><td>27.8</td><td>69.5</td><td>88.4</td><td>27.0</td><td>71.6</td></tr>
+<tr><td class="method">Qwen3.5<sub>9B</sub></td><td>92.0</td><td>35.1</td><td>78.3</td><td>87.5</td><td>33.9</td><td>74.6</td><td>89.5</td><td>33.5</td><td>75.3</td></tr>
+<tr><td class="method">RynnBrain1.1</td><td>82.6</td><td>20.9</td><td>65.8</td><td>72.5</td><td>19.2</td><td>57.5</td><td>84.3</td><td>21.5</td><td>67.6</td></tr>
+<tr><td class="method">SenseNova-Vision</td><td>90.1</td><td class="second">45.1</td><td>79.7</td><td>84.4</td><td>41.7</td><td>74.3</td><td>89.2</td><td class="best">44.7</td><td>78.7</td></tr>
+<tr><td class="method">MiMo-VL-SFT<sub>7B</sub></td><td>86.1</td><td>14.5</td><td>66.3</td><td>76.8</td><td>13.1</td><td>58.9</td><td>84.9</td><td>14.3</td><td>64.8</td></tr>
+<tr><td class="method">MiMo-VL-RL<sub>7B</sub></td><td>90.4</td><td>14.2</td><td>68.5</td><td>84.8</td><td>13.6</td><td>64.4</td><td>87.7</td><td>13.1</td><td>64.8</td></tr>
+<tr><td class="method">BAGEL</td><td>79.4</td><td>25.1</td><td>65.2</td><td>68.3</td><td>20.5</td><td>54.5</td><td>77.7</td><td>22.2</td><td>62.3</td></tr>
+<tr><td class="method">RynnBrain</td><td>74.0</td><td>13.6</td><td>55.6</td><td>65.5</td><td>11.7</td><td>48.9</td><td>76.5</td><td>14.3</td><td>57.9</td></tr>
+<tr><td class="method">GroundingPI</td><td class="best">95.9</td><td class="best">48.3</td><td class="best">85.8</td><td class="best">93.6</td><td class="best">48.4</td><td class="best">84.0</td><td class="best">93.2</td><td>43.5</td><td class="best">82.0</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td class="second">94.6</td><td>44.6</td><td class="second">83.3</td><td class="second">92.1</td><td class="second">43.6</td><td class="second">81.1</td><td class="second">92.5</td><td class="second">43.8</td><td class="second">81.1</td></tr>
+</tbody></table></div>
+      </details>
+    </div>
+    <div class="result-card" id="result-res" role="tabpanel" hidden>
+      <div class="result-head">
+        <div><p class="eyebrow">02 · Referring Expression Segmentation</p><h3>RefCOCO / RefCOCO+ / RefCOCOg</h3></div>
+        <div class="big-score"><b>81.4</b><span>Xiaomi-Lens-0 · mean cIoU · 8 splits</span></div>
+        <p>Leads the compared models on all eight RefCOCO, RefCOCO+, and RefCOCOg splits.</p>
+      </div>
+      <div class="result-body">
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean cIoU · 8 splits · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">81.4</span></li><li><span class="name">Qwen3-VL-Seg<sub>4B</sub></span><span class="track"><span class="fill" style="width:73.6%"></span></span><span class="val">78.6</span></li><li><span class="name">Youtu-VL<sub>4B</sub></span><span class="track"><span class="fill" style="width:65.1%"></span></span><span class="val">77.7</span></li><li><span class="name">MLLMSeg<sub>InternVL2.5-4B</sub></span><span class="track"><span class="fill" style="width:63.2%"></span></span><span class="val">77.5</span></li><li><span class="name">UniPixel<sub>Qwen2.5-VL-3B</sub></span><span class="track"><span class="fill" style="width:57.5%"></span></span><span class="val">76.9</span></li><li><span class="name">Text4Seg<sub>InternVL2-8B</sub></span><span class="track"><span class="fill" style="width:43.4%"></span></span><span class="val">75.4</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>RefCOCO Val</span><b class="best">83.4</b></div><div><span>RefCOCO TestA</span><b class="best">84.6</b></div><div><span>RefCOCO TestB</span><b class="best">81.2</b></div><div><span>RefCOCO+ Val</span><b class="best">79.9</b></div><div><span>RefCOCO+ TestA</span><b class="best">83.3</b></div><div><span>RefCOCO+ TestB</span><b class="best">76.3</b></div><div><span>RefCOCOg Val</span><b class="best">81.1</b></div><div><span>RefCOCOg Test</span><b class="best">81.2</b></div></div></div>
+      </div>
+      <details class="scores"><summary>View detailed scores</summary>
+        <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="2" class="method">Method</th>
+<th colspan="3" class="group">RefCOCO</th>
+<th colspan="3" class="group">RefCOCO+</th>
+<th colspan="2" class="group">RefCOCOg</th>
+</tr>
+<tr><th>Val</th><th>TestA</th><th>TestB</th><th>Val</th><th>TestA</th><th>TestB</th><th>Val</th><th>Test</th></tr>
+</thead><tbody>
+<tr><td class="method">LISA<sub>LLaVA-7B</sub></td><td>74.9</td><td>79.1</td><td>72.3</td><td>65.1</td><td>70.8</td><td>58.1</td><td>67.9</td><td>70.6</td></tr>
+<tr><td class="method">GSVA<sub>Vicuna-7B</sub></td><td>77.2</td><td>78.9</td><td>73.5</td><td>65.9</td><td>69.6</td><td>59.8</td><td>72.7</td><td>73.3</td></tr>
+<tr><td class="method">PixelLM<sub>LLaVA-7B</sub></td><td>73.0</td><td>76.5</td><td>68.2</td><td>66.3</td><td>71.7</td><td>58.3</td><td>69.3</td><td>70.5</td></tr>
+<tr><td class="method">VisionLLM v2<sub>Vicuna-7B</sub></td><td>76.6</td><td>79.3</td><td>74.3</td><td>64.5</td><td>69.8</td><td>61.5</td><td>70.7</td><td>71.2</td></tr>
+<tr><td class="method">Text4Seg<sub>InternVL2-8B</sub></td><td>79.2</td><td>81.7</td><td>75.6</td><td>72.8</td><td>77.9</td><td>66.5</td><td>74.0</td><td>75.3</td></tr>
+<tr><td class="method">UFO<sub>InternVL2-8B</sub></td><td>78.0</td><td>79.7</td><td>75.6</td><td>72.3</td><td>76.8</td><td>66.6</td><td>73.7</td><td>74.3</td></tr>
+<tr><td class="method">MLLMSeg<sub>InternVL2.5-4B</sub></td><td>79.5</td><td>81.4</td><td>77.7</td><td>75.4</td><td>78.7</td><td>70.8</td><td>78.1</td><td class="second">78.4</td></tr>
+<tr><td class="method">SAM 3</td><td>75.5</td><td>77.6</td><td>71.0</td><td>67.3</td><td>71.1</td><td>63.4</td><td>73.4</td><td>74.0</td></tr>
+<tr><td class="method">UniPixel<sub>Qwen2.5-VL-3B</sub></td><td>80.5</td><td>82.6</td><td>76.9</td><td>74.3</td><td>78.9</td><td>68.4</td><td>76.3</td><td>77.0</td></tr>
+<tr><td class="method">Youtu-VL<sub>4B</sub></td><td>80.7</td><td>82.0</td><td>78.4</td><td class="second">76.2</td><td>79.6</td><td class="second">71.4</td><td>76.5</td><td>76.6</td></tr>
+<tr><td class="method">Qwen3-VL-Seg<sub>4B</sub></td><td class="second">82.3</td><td class="second">83.7</td><td class="second">79.1</td><td class="second">76.2</td><td class="second">80.2</td><td>70.8</td><td class="second">78.2</td><td>78.1</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td class="best">83.4</td><td class="best">84.6</td><td class="best">81.2</td><td class="best">79.9</td><td class="best">83.3</td><td class="best">76.3</td><td class="best">81.1</td><td class="best">81.2</td></tr>
+</tbody></table></div>
+
+      </details>
+    </div>
+    <div class="result-card" id="result-multi" role="tabpanel" hidden>
+      <div class="result-head">
+        <div><p class="eyebrow">03 · Multi-Instance Grounding</p><h3>COCO 2017</h3></div>
+        <div class="big-score"><b>60.6</b><span>Xiaomi-Lens-0 · F1 · mean over IoU 0.50–0.95</span></div>
+        <p>Second to GroundingPI (63.0) on mean F1 over IoU thresholds, tied with GroundingDINO.</p>
+      </div>
+      <div class="result-body">
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">F1 · mean over IoU 0.50–0.95 · top models</p><ol class="bars"><li><span class="name">GroundingPI</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">63.0</span></li><li><span class="name">GroundingDINO</span><span class="track"><span class="fill" style="width:75.5%"></span></span><span class="val">60.6</span></li><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:75.5%"></span></span><span class="val">60.6</span></li><li><span class="name">LocateAnything Slow NTP</span><span class="track"><span class="fill" style="width:63.3%"></span></span><span class="val">59.4</span></li><li><span class="name">LocateAnything Hybrid</span><span class="track"><span class="fill" style="width:60.2%"></span></span><span class="val">59.1</span></li><li><span class="name">SenseNova-Vision</span><span class="track"><span class="fill" style="width:43.9%"></span></span><span class="val">57.5</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>IoU 0.50 Recall</span><b class="">77.5</b></div><div><span>IoU 0.50 Precision</span><b class="">79.3</b></div><div><span>IoU 0.50 F1</span><b class="">78.4</b></div><div><span>IoU 0.95 Recall</span><b class="">23.3</b></div><div><span>IoU 0.95 Precision</span><b class="">23.7</b></div><div><span>IoU 0.95 F1</span><b class="">23.5</b></div><div><span>mIoU Recall</span><b class="">60.0</b></div><div><span>mIoU Precision</span><b class="">61.2</b></div><div><span>mIoU F1</span><b class="">60.6</b></div></div></div>
+      </div>
+      <details class="scores"><summary>View detailed scores</summary>
+        <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
+<p class="note">The mIoU group gives the mean of each metric over IoU thresholds from 0.50 to 0.95 in steps of 0.05.</p><div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="2" class="method">Method</th>
+<th colspan="3" class="group">IoU 0.50</th>
+<th colspan="3" class="group">IoU 0.95</th>
+<th colspan="3" class="group">mIoU</th>
+</tr>
+<tr><th>Recall</th><th>Precision</th><th>F1</th><th>Recall</th><th>Precision</th><th>F1</th><th>Recall</th><th>Precision</th><th>F1</th></tr>
+</thead><tbody>
+<tr><td class="method">GroundingDINO</td><td class="second">79.6</td><td class="best">83.2</td><td class="best">81.4</td><td>24.7</td><td>28.1</td><td>26.3</td><td>61.1</td><td>63.7</td><td class="second">60.6</td></tr>
+<tr><td class="method">Rex-Omni</td><td>69.9</td><td>81.0</td><td>75.0</td><td>17.9</td><td>21.7</td><td>19.7</td><td>53.9</td><td>59.4</td><td>56.3</td></tr>
+<tr><td class="method">LocateAnything Fast</td><td>66.2</td><td>73.3</td><td>69.6</td><td>24.7</td><td>26.9</td><td>25.8</td><td>50.9</td><td>59.3</td><td>53.1</td></tr>
+<tr><td class="method">LocateAnything Hybrid</td><td>74.7</td><td>80.8</td><td>77.6</td><td class="second">26.6</td><td class="second">28.7</td><td class="second">27.6</td><td>52.4</td><td class="best">65.2</td><td>59.1</td></tr>
+<tr><td class="method">LocateAnything Slow NTP</td><td>75.0</td><td class="second">81.9</td><td>78.3</td><td>25.0</td><td>27.2</td><td>26.0</td><td>54.7</td><td class="second">65.1</td><td>59.4</td></tr>
+<tr><td class="method">Qwen2.5-VL<sub>7B</sub></td><td>57.2</td><td>62.9</td><td>59.9</td><td>12.2</td><td>13.2</td><td>12.7</td><td>44.7</td><td>49.1</td><td>46.3</td></tr>
+<tr><td class="method">Qwen3-VL<sub>2B</sub></td><td>63.5</td><td>67.1</td><td>65.3</td><td>21.8</td><td>22.6</td><td>22.2</td><td>42.6</td><td>44.9</td><td>42.5</td></tr>
+<tr><td class="method">Qwen3-VL<sub>4B</sub></td><td>66.1</td><td>70.6</td><td>68.3</td><td>23.7</td><td>24.9</td><td>24.3</td><td>44.9</td><td>47.8</td><td>46.5</td></tr>
+<tr><td class="method">Qwen3-VL<sub>8B</sub></td><td>65.7</td><td>69.5</td><td>67.5</td><td>23.9</td><td>25.1</td><td>24.5</td><td>44.8</td><td>47.3</td><td>46.3</td></tr>
+<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>65.9</td><td>67.8</td><td>66.8</td><td>22.9</td><td>23.7</td><td>23.3</td><td>48.4</td><td>45.7</td><td>47.6</td></tr>
+<tr><td class="method">Qwen3.5<sub>9B</sub></td><td>73.2</td><td>68.1</td><td>70.6</td><td>23.8</td><td>24.5</td><td>24.2</td><td>58.5</td><td>46.3</td><td>52.0</td></tr>
+<tr><td class="method">RynnBrain1.1</td><td>36.5</td><td>60.5</td><td>45.5</td><td>11.6</td><td>16.5</td><td>13.6</td><td>28.7</td><td>45.3</td><td>35.2</td></tr>
+<tr><td class="method">SenseNova-Vision</td><td>79.1</td><td>80.5</td><td>79.8</td><td class="best">27.2</td><td class="best">30.2</td><td class="best">28.6</td><td class="second">63.1</td><td>55.4</td><td>57.5</td></tr>
+<tr><td class="method">MiMo-VL-SFT<sub>7B</sub></td><td>65.5</td><td>72.2</td><td>68.7</td><td>10.0</td><td>11.1</td><td>10.5</td><td>45.7</td><td>50.5</td><td>48.0</td></tr>
+<tr><td class="method">MiMo-VL-RL<sub>7B</sub></td><td>65.6</td><td>74.5</td><td>69.8</td><td>9.2</td><td>10.3</td><td>9.7</td><td>44.5</td><td>50.2</td><td>47.2</td></tr>
+<tr><td class="method">BAGEL</td><td>65.6</td><td>75.2</td><td>70.1</td><td>11.0</td><td>13.0</td><td>11.9</td><td>46.3</td><td>47.2</td><td>46.0</td></tr>
+<tr><td class="method">RynnBrain</td><td>21.3</td><td>49.9</td><td>29.8</td><td>4.9</td><td>10.9</td><td>6.7</td><td>15.5</td><td>35.4</td><td>21.5</td></tr>
+<tr><td class="method">GroundingPI</td><td class="best">81.4</td><td>80.9</td><td class="second">81.2</td><td>22.9</td><td>22.8</td><td>22.8</td><td class="best">63.2</td><td>62.8</td><td class="best">63.0</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td>77.5</td><td>79.3</td><td>78.4</td><td>23.3</td><td>23.7</td><td>23.5</td><td>60.0</td><td>61.2</td><td class="second">60.6</td></tr>
+</tbody></table></div>
+
+      </details>
+    </div>
+    <div class="result-card" id="result-reason" role="tabpanel" hidden>
+      <div class="result-head">
+        <div><p class="eyebrow">04 · Reasoning Segmentation</p><h3>ReasonSeg</h3></div>
+        <div class="big-score"><b>67.6</b><span>Xiaomi-Lens-0 · mean of 4 gIoU / cIoU scores</span></div>
+        <p>Best on all four ReasonSeg scores, validation and test.</p>
+      </div>
+      <div class="result-body">
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean of 4 gIoU / cIoU scores · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">67.6</span></li><li><span class="name">InstructSAM<sub>Qwen3-VL-2B</sub></span><span class="track"><span class="fill" style="width:81.5%"></span></span><span class="val">62.4</span></li><li><span class="name">LISA++<sub>LLaVA-7B</sub></span><span class="track"><span class="fill" style="width:80.7%"></span></span><span class="val">62.2</span></li><li><span class="name">Sa2VA<sub>InternVL2-8B</sub></span><span class="track"><span class="fill" style="width:76.1%"></span></span><span class="val">60.9</span></li><li><span class="name">Sa2VA<sub>InternVL2-2B</sub></span><span class="track"><span class="fill" style="width:65.8%"></span></span><span class="val">58.0</span></li><li><span class="name">LISA<sub>LLaVA-7B</sub></span><span class="track"><span class="fill" style="width:39.7%"></span></span><span class="val">50.7</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>ReasonSeg Val gIoU</span><b class="best">71.2</b></div><div><span>ReasonSeg Val cIoU</span><b class="best">68.5</b></div><div><span>ReasonSeg Test gIoU</span><b class="best">68.0</b></div><div><span>ReasonSeg Test cIoU</span><b class="best">62.5</b></div></div></div>
+      </div>
+      <details class="scores"><summary>View detailed scores</summary>
+        <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="3" class="method">Method</th>
+<th colspan="4" class="group">ReasonSeg</th>
+</tr>
+<tr>
+<th colspan="2" class="group">Val</th>
+<th colspan="2" class="group">Test</th>
+</tr>
+<tr><th>gIoU</th><th>cIoU</th><th>gIoU</th><th>cIoU</th></tr>
+</thead><tbody>
+<tr><td class="method">LISA<sub>LLaVA-7B</sub></td><td>52.9</td><td>54.0</td><td>47.3</td><td>48.4</td></tr>
+<tr><td class="method">LISA++<sub>LLaVA-7B</sub></td><td>64.2</td><td class="second">68.1</td><td>57.0</td><td>59.5</td></tr>
+<tr><td class="method">PixelLM<sub>LLaVA-7B</sub></td><td>44.7</td><td>37.4</td><td>44.0</td><td>39.7</td></tr>
+<tr><td class="method">Sa2VA<sub>InternVL2-2B</sub></td><td>59.2</td><td>60.0</td><td>56.9</td><td>55.8</td></tr>
+<tr><td class="method">Sa2VA<sub>InternVL2-8B</sub></td><td class="second">65.2</td><td>61.1</td><td>59.5</td><td>57.8</td></tr>
+<tr><td class="method">X-SAM<sub>Phi-3-3.8B</sub></td><td>56.6</td><td>32.9</td><td>57.8</td><td>41.0</td></tr>
+<tr><td class="method">InstructSAM<sub>Qwen3-VL-2B</sub></td><td>62.5</td><td>65.0</td><td class="second">61.1</td><td class="second">61.0</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td class="best">71.2</td><td class="best">68.5</td><td class="best">68.0</td><td class="best">62.5</td></tr>
+</tbody></table></div>
+
+      </details>
+    </div>
+    <div class="result-card" id="result-embodied" role="tabpanel" hidden>
+      <div class="result-head">
+        <div><p class="eyebrow">05 · Embodied Referring</p><h3>RoboRefIt</h3></div>
+        <div class="big-score"><b>84.5</b><span>Xiaomi-Lens-0 · mean of 4 gIoU / cIoU scores</span></div>
+        <p>Best on all four RoboRefIt scores, on both test splits.</p>
+      </div>
+      <div class="result-body">
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean of 4 gIoU / cIoU scores · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">84.5</span></li><li><span class="name">InstructSAM<sub>Qwen3-VL-2B</sub></span><span class="track"><span class="fill" style="width:80.0%"></span></span><span class="val">67.7</span></li><li><span class="name">LISA++<sub>LLaVA-7B</sub></span><span class="track"><span class="fill" style="width:62.5%"></span></span><span class="val">52.9</span></li><li><span class="name">PixelLM<sub>LLaVA-7B</sub></span><span class="track"><span class="fill" style="width:45.1%"></span></span><span class="val">38.3</span></li><li><span class="name">Sa2VA<sub>InternVL2-8B</sub></span><span class="track"><span class="fill" style="width:38.7%"></span></span><span class="val">32.9</span></li><li><span class="name">Sa2VA<sub>InternVL2-2B</sub></span><span class="track"><span class="fill" style="width:38.2%"></span></span><span class="val">32.5</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>RoboRefIt TestA gIoU</span><b class="best">87.0</b></div><div><span>RoboRefIt TestA cIoU</span><b class="best">88.4</b></div><div><span>RoboRefIt TestB gIoU</span><b class="best">81.5</b></div><div><span>RoboRefIt TestB cIoU</span><b class="best">81.2</b></div></div></div>
+      </div>
+      <details class="scores"><summary>View detailed scores</summary>
+        <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="3" class="method">Method</th>
+<th colspan="4" class="group">RoboRefIt</th>
+</tr>
+<tr>
+<th colspan="2" class="group">TestA</th>
+<th colspan="2" class="group">TestB</th>
+</tr>
+<tr><th>gIoU</th><th>cIoU</th><th>gIoU</th><th>cIoU</th></tr>
+</thead><tbody>
+<tr><td class="method">LISA<sub>LLaVA-7B</sub></td><td>36.1</td><td>29.9</td><td>28.7</td><td>22.7</td></tr>
+<tr><td class="method">LISA++<sub>LLaVA-7B</sub></td><td>58.7</td><td>51.5</td><td>53.5</td><td>47.8</td></tr>
+<tr><td class="method">PixelLM<sub>LLaVA-7B</sub></td><td>45.2</td><td>38.4</td><td>38.2</td><td>31.4</td></tr>
+<tr><td class="method">Sa2VA<sub>InternVL2-2B</sub></td><td>56.8</td><td>29.0</td><td>34.0</td><td>10.2</td></tr>
+<tr><td class="method">Sa2VA<sub>InternVL2-8B</sub></td><td>58.7</td><td>27.9</td><td>36.1</td><td>9.0</td></tr>
+<tr><td class="method">X-SAM<sub>Phi-3-3.8B</sub></td><td>41.2</td><td>10.3</td><td>25.1</td><td>4.0</td></tr>
+<tr><td class="method">InstructSAM<sub>Qwen3-VL-2B</sub></td><td class="second">82.5</td><td class="second">58.4</td><td class="second">74.4</td><td class="second">55.5</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td class="best">87.0</td><td class="best">88.4</td><td class="best">81.5</td><td class="best">81.2</td></tr>
+</tbody></table></div>
+
+      </details>
+    </div>
+    <div class="result-card" id="result-perception" role="tabpanel" hidden>
+      <div class="result-head">
+        <div><p class="eyebrow">06 · Fine-Grained Perception</p><h3>8 perception benchmarks</h3></div>
+        <div class="big-score"><b>76.4</b><span>Xiaomi-Lens-0 · mean accuracy · 8 benchmarks</span></div>
+        <p>Improves over its Qwen3.5-4B backbone on all eight benchmarks, including +6.8 points on CountQA.</p>
+      </div>
+      <div class="result-body">
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean accuracy · 8 benchmarks · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">76.4</span></li><li><span class="name">Qwen3.5<sub>4B</sub></span><span class="track"><span class="fill" style="width:81.1%"></span></span><span class="val">72.3</span></li><li><span class="name">Qwen3-VL<sub>8B</sub></span><span class="track"><span class="fill" style="width:76.0%"></span></span><span class="val">71.2</span></li><li><span class="name">Qwen3-VL<sub>4B</sub></span><span class="track"><span class="fill" style="width:66.3%"></span></span><span class="val">69.1</span></li><li><span class="name">MiMo-VL-RL<sub>7B</sub></span><span class="track"><span class="fill" style="width:63.0%"></span></span><span class="val">68.4</span></li><li><span class="name">Qwen2.5-VL<sub>7B</sub></span><span class="track"><span class="fill" style="width:40.4%"></span></span><span class="val">63.5</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>General Perception MME-RW-en</span><b class="best">69.7</b></div><div><span>General Perception MME-RW-cn</span><b class="best">67.5</b></div><div><span>General Perception CV-B</span><b class="best">88.1</b></div><div><span>High-Resolution Perception V*</span><b class="best">87.4</b></div><div><span>High-Resolution Perception HR-4K</span><b class="best">82.5</b></div><div><span>High-Resolution Perception HR-8K</span><b class="best">80.6</b></div><div><span>Counting and Color CountQA</span><b class="best">50.6</b></div><div><span>Counting and Color ColorB</span><b class="best">84.4</b></div></div></div>
+      </div>
+      <details class="scores"><summary>View detailed scores</summary>
+        <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th rowspan="2" class="method">Method</th>
+<th colspan="3" class="group">General Perception</th>
+<th colspan="3" class="group">High-Resolution Perception</th>
+<th colspan="2" class="group">Counting and Color</th>
+</tr>
+<tr><th>MME-RW-en</th><th>MME-RW-cn</th><th>CV-B</th><th>V*</th><th>HR-4K</th><th>HR-8K</th><th>CountQA</th><th>ColorB</th></tr>
+</thead><tbody>
+<tr><td class="method">Qwen2.5-VL<sub>7B</sub></td><td>60.8</td><td>58.3</td><td>75.3</td><td>78.5</td><td>71.6</td><td>67.9</td><td>18.9</td><td>76.4</td></tr>
+<tr><td class="method">MiMo-VL-RL<sub>7B</sub></td><td>63.4</td><td>59.8</td><td>84.3</td><td>81.2</td><td>74.4</td><td>72.9</td><td>28.3</td><td class="second">82.8</td></tr>
+<tr><td class="method">Qwen3-VL<sub>4B</sub></td><td>63.5</td><td>63.6</td><td>85.0</td><td>80.1</td><td>78.3</td><td>72.9</td><td>28.1</td><td>81.6</td></tr>
+<tr><td class="method">Qwen3-VL<sub>8B</sub></td><td>66.0</td><td class="second">66.7</td><td class="second">85.4</td><td class="second">86.4</td><td>78.9</td><td>74.6</td><td>29.0</td><td class="second">82.8</td></tr>
+<tr><td class="method">MiniCPM-V-4.5<sub>9B</sub></td><td>58.2</td><td>56.2</td><td>80.2</td><td>70.2</td><td>69.9</td><td>63.6</td><td>23.4</td><td>79.8</td></tr>
+<tr><td class="method">Qwen3.5<sub>4B</sub></td><td class="second">66.5</td><td>60.3</td><td class="second">85.4</td><td>82.2</td><td class="second">81.5</td><td class="second">75.6</td><td class="second">43.8</td><td>82.7</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td class="best">69.7</td><td class="best">67.5</td><td class="best">88.1</td><td class="best">87.4</td><td class="best">82.5</td><td class="best">80.6</td><td class="best">50.6</td><td class="best">84.4</td></tr>
+</tbody></table></div>
+
+      </details>
+    </div>
+    <figure class="figure-card" style="margin-top:28px">
+      <img src="assets/figures/radar_comparison.png" width="2000" height="492" loading="lazy" alt="Radar charts comparing Xiaomi-Lens-0 with baselines on box grounding, referring segmentation, and perception.">
+    </figure>
+    <p class="figure-caption">At a glance: box grounding (left), referring segmentation (middle), and perception (right).</p>
+  </div>
+</section>
+
+<section id="cite" class="pad tinted">
+  <div class="shell cite">
+    <div class="section-heading single" style="margin:0">
+      <div>
+        <p class="eyebrow">06 / Citation</p>
+        <h2>Cite this work.</h2>
+      </div>
+      <p class="lead">If you find Xiaomi-Lens-0 useful, please cite the technical report.</p>
+    </div>
+    <div class="bib">
+      <button class="copy" type="button" id="copy">Copy</button>
+      <pre id="bibtex">@misc{xiaomilens0,
+  title  = {Xiaomi-Lens-0 Technical Report},
+  author = {SeerRay Team},
+  year   = {2026},
+  url    = {https://seerray-lab.github.io/Xiaomi-Lens-0/}
+}</pre>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell">
+    <p class="eyebrow">Contributors</p>
+    <p style="margin-top:8px;font-size:14px">Names are ordered alphabetically by surname within each group. <sup>†</sup> Corresponding author.</p>
+    <div class="people">
+      <div><h4>Core Contributors</h4><p>Pei Fu<sup>†</sup>, Yike Liu, Yue Sun, Hanmo Wang, Xiuwen Xi, Ruoceng Zhang, Shaojie Zhang</p></div>
+      <div><h4>Contributors</h4><p>Chao Jiang, Hang Li, Bingrui Liu, Zhenbo Luo, Heng Qu, Changjian Xu, Ming Xu</p></div>
+      <div><h4>Supervisors</h4><p>Jian Luan<sup>†</sup></p></div>
+    </div>
+    <div class="foot-bar">
+      <span>SeerRay Team</span>
+      <span><a href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0">Code</a> · <a href="https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0">Model weights</a> · <a href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench</a> · Built on <a href="https://github.com/QwenLM">Qwen3.5</a>.</span>
+    </div>
+  </div>
+  <p>Fonts and demonstration media retain their respective licenses. <a href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>.</p>
+</footer>
+
+<script>
+(function () {
+  function loadLazy(root) {
+    root.querySelectorAll("img[data-lazy]").forEach(function (img) {
+      img.src = img.getAttribute("data-lazy");
+      img.removeAttribute("data-lazy");
+    });
+  }
+
+  // Tab groups: hidden panels load their images on first open.
+  document.querySelectorAll('[role="tablist"]').forEach(function (list) {
+    var tabs = list.querySelectorAll('[role="tab"]');
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (t) {
+          var on = t === tab;
+          t.setAttribute("aria-selected", on);
+          var panel = document.getElementById(t.getAttribute("aria-controls"));
+          panel.hidden = !on;
+          if (on) loadLazy(panel);
+        });
+      });
+    });
+  });
+
+  // Sample playback: only the selected GIF is downloaded.
+  var player = document.getElementById("player");
+  var media = document.getElementById("player-img");
+  var cases = Array.prototype.slice.call(document.querySelectorAll(".case-list button"));
+  function show(btn, scroll) {
+    cases.forEach(function (b) { b.setAttribute("aria-current", b === btn); });
+    media.src = btn.dataset.gif;
+    media.alt = btn.dataset.alt;
+    document.getElementById("player-task").textContent = btn.dataset.task;
+    document.getElementById("player-title").textContent = btn.dataset.title;
+    document.getElementById("player-query").innerHTML = btn.dataset.query;
+    if (scroll) player.scrollIntoView({ block: "nearest" });
+  }
+  cases.forEach(function (b) { b.addEventListener("click", function () { show(b); }); });
+  document.getElementById("replay").addEventListener("click", function () {
+    var src = media.src; media.src = ""; media.src = src;
+  });
+  document.querySelectorAll(".chip[data-filter]").forEach(function (chip, _, chips) {
+    chip.addEventListener("click", function () {
+      var f = chip.dataset.filter;
+      chips.forEach(function (c) { c.setAttribute("aria-pressed", c === chip); });
+      var first = null;
+      cases.forEach(function (b) {
+        var on = f === "all" || b.dataset.group === f;
+        b.parentElement.hidden = !on;
+        if (on && !first) first = b;
+      });
+      if (first) show(first);
+    });
+  });
+  document.querySelectorAll("[data-jump]").forEach(function (a) {
+    a.addEventListener("click", function () {
+      document.querySelector('.chip[data-filter="all"]').click();
+      show(document.querySelector('.case-list button[data-id="' + a.dataset.jump + '"]'));
+      document.getElementById("samples").scrollIntoView();
+    });
+  });
+
+  // Overview GIF below the player loads when it nears the viewport.
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { loadLazy(e.target.parentElement); io.unobserve(e.target); }
+      });
+    }, { rootMargin: "400px" });
+    document.querySelectorAll(".overview-figure img[data-lazy]").forEach(function (img) { io.observe(img); });
+
+    // Highlight the nav link of the section in view.
+    var links = {};
+    document.querySelectorAll(".site-header nav a").forEach(function (a) { links[a.hash.slice(1)] = a; });
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        Object.keys(links).forEach(function (id) { links[id].setAttribute("aria-current", id === e.target.id); });
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    Object.keys(links).forEach(function (id) { spy.observe(document.getElementById(id)); });
+  } else {
+    loadLazy(document);
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var btn = this;
+    navigator.clipboard.writeText(document.getElementById("bibtex").textContent).then(function () {
+      btn.textContent = "Copied";
+      setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+    });
+  });
+})();
+</script>
+</body>
+</html>

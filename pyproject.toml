@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xiaomi-lens"
+version = "0.1.0"
+description = "Xiaomi-Lens-0: a Qwen3.5 VLM with a <|mask|> token decoded to full-resolution segmentation masks."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+# Hugging Face inference and vLLM serving may need different transformers pins,
+# so runtime deps are listed in requirements.txt rather than enforced here.
+dependencies = []
+
+[project.optional-dependencies]
+vllm = ["vllm>=0.19.1", "pycocotools", "safetensors"]
+
+[tool.setuptools]
+py-modules = ["infer"]
+package-dir = {"" = ".", "xiaomi_lens" = "src/xiaomi_lens"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"xiaomi_lens.integrations.vllm" = ["*.sh"]
+
+# vLLM discovers out-of-tree plugins through entry points, and it re-loads them in
+# every process — including the spawned EngineCore worker, which is why a plain
+# `ModelRegistry.register_model(...)` in the launcher process is not enough. These
+# two groups register (1) the custom Xiaomi-Lens-0 model that runs PixelMaskDecoder
+# inside vLLM and (2) the IO processor that serializes the dense mask output.
+# Only meaningful in the vLLM-serving environment.
+[project.entry-points."vllm.general_plugins"]
+xiaomi_lens_register = "xiaomi_lens.integrations.vllm.plugin:register"
+
+[project.entry-points."vllm.io_processor_plugins"]
+xiaomi_lens_mask = "xiaomi_lens.integrations.vllm.io_processor:make_io_processor"

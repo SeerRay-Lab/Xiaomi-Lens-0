@@ -1,0 +1,12 @@
+# Hugging Face inference (infer.py). Tested with torch 2.10.0,
+# transformers 5.4.0, and flash-attn 2.8.3.
+torch>=2.10.0
+torchvision>=0.25.0
+transformers>=5.4.0
+accelerate>=1.13.0
+flash-attn>=2.8.3
+numpy
+pillow
+
+# vLLM serving (src/xiaomi_lens/integrations/vllm) — install with
+# `pip install -e ".[vllm]"`; tested with vllm 0.19.1.
