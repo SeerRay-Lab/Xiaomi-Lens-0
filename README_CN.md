@@ -284,4 +284,4 @@ hf download SeerRay-Lab/LensBench --repo-type dataset --local-dir LensBench
 
 Xiaomi-Lens-0 基于 [Qwen3.5](https://github.com/QwenLM) 构建。
 
-代码采用 [Apache-2.0](LICENSE) 许可。字体和演示素材来源见[第三方说明](THIRD_PARTY_NOTICES.md)。
+代码采用 [Apache-2.0](LICENSE) 许可。

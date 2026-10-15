@@ -284,4 +284,4 @@ If you find Xiaomi-Lens-0 useful, please cite:
 
 Xiaomi-Lens-0 is built on [Qwen3.5](https://github.com/QwenLM).
 
-Code is licensed under [Apache-2.0](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) for fonts and demonstration media.
+Code is licensed under [Apache-2.0](LICENSE).
