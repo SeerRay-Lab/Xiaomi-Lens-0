@@ -35,7 +35,7 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 5. **Embodied Referring**: picks the object a person asks to be handed in cluttered scenes. Best on all four RoboRefIt scores.
 6. **Fine-Grained Perception**: thinks with visual latents, grounding each region it refers to while counting or answering high-resolution questions. Improves over its Qwen3.5-4B backbone on all eight perception benchmarks, including +6.8 points on CountQA.
 
-We also release **[LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench)**, an 8,000-sample segmentation benchmark covering General, Aerial, Driving, and Panoramic images with explicit and implicit instructions.
+We also release **[LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench)**, a segmentation benchmark with 4,800 instruction-level samples from 1,200 paired evaluation units, covering General, Aerial, Driving, and Panoramic images. Each domain contains 300 units, each with four instructions crossing Single/Multiple targets with Explicit/Implicit wording.
 
 ## 🧠 Method
 

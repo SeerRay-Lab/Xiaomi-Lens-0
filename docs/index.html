@@ -401,7 +401,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
     <div class="metric"><div class="metric-value">94.6</div><div class="metric-name">Referring Expression Comprehension</div><div class="metric-note">Pres@0.5, RefCOCO val</div></div>
     <div class="metric"><div class="metric-value">68.0</div><div class="metric-name">ReasonSeg test</div><div class="metric-note">gIoU</div></div>
     <div class="metric"><div class="metric-value">+6.8</div><div class="metric-name">CountQA over backbone</div><div class="metric-note">50.6 vs. 43.8 for Qwen3.5-4B</div></div>
-    <div class="metric"><div class="metric-value">8,000</div><div class="metric-name">LensBench samples</div><div class="metric-note">4 domains, open on Hugging Face</div></div>
+    <div class="metric"><div class="metric-value">4,800</div><div class="metric-name">LensBench instruction-level samples</div><div class="metric-note">1,200 paired units across 4 domains</div></div>
   </div>
 
   <figure class="overview-figure" id="video">
@@ -570,9 +570,9 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
       <figure class="figure-card"><img data-lazy="assets/figures/lensbench_data_pipeline.png" width="2000" height="1339" alt="LensBench design across four domains and its construction pipeline."></figure>
       <div class="facts">
         <div class="fact"><b>4</b><span>domains: General, Aerial, Driving, Panoramic</span></div>
-        <div class="fact"><b>500</b><span>evaluation units per domain</span></div>
+        <div class="fact"><b>300</b><span>evaluation units per domain; 1,200 paired units in total</span></div>
         <div class="fact"><b>2 × 2</b><span>Single/Multiple targets × Explicit/Implicit instructions</span></div>
-        <div class="fact"><b>8,000</b><span>evaluation samples in total</span></div>
+        <div class="fact"><b>4,800</b><span>instruction-level evaluation samples in total</span></div>
       </div>
       <div class="actions"><a class="button" href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench on Hugging Face ↗</a></div>
     </div>
