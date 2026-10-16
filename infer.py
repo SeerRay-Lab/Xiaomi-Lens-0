@@ -442,18 +442,10 @@ def parse_args() -> argparse.Namespace:
         help="Top-k sampling cutoff (only used when temperature>0; 0=off). Default: 0.",
     )
     parser.add_argument(
-        "--num-rollouts",
-        type=int,
-        default=1,
-        help="Number of generations. The script reports final-answer mask counts "
-             "and visualizes the generation with the most answer masks "
-             "(ties use the earliest). Use temperature>0 for sampling. Default: 1.",
-    )
-    parser.add_argument(
         "--seed",
         type=int,
         default=None,
-        help="Manual RNG seed for reproducible sampling rollouts. Default: none.",
+        help="Manual RNG seed for reproducible sampling. Default: none.",
     )
     return parser.parse_args()
 
@@ -475,42 +467,17 @@ def main() -> None:
     if args.seed is not None:
         torch.manual_seed(args.seed)
 
-    # Rank generations by final-answer mask count, excluding reasoning masks.
-    from collections import Counter
-    rollouts = []  # (idx, answer_K, thought_K, generated_text, completion_ids)
-    for i in range(max(1, args.num_rollouts)):
-        completion_ids, generated_text, total_mask_count = generate_completion(
-            model, processor, prompt_inputs, args.max_new_tokens, mask_token_id,
-            do_sample=do_sample, temperature=args.temperature,
-            top_p=args.top_p, top_k=args.top_k,
-        )
-        _, thought_mask_count = split_answer_content(generated_text)
-        answer_mask_count = max(0, total_mask_count - thought_mask_count)
-        rollouts.append(
-            (i, answer_mask_count, thought_mask_count, generated_text, completion_ids)
-        )
-        mode = f"sample(T={args.temperature},top_p={args.top_p},top_k={args.top_k})" if do_sample else "greedy"
-        print(
-            f"[rollout {i} | {mode}] K_answer={answer_mask_count} "
-            f"K_thought={thought_mask_count}  {generated_text!r}"
-        )
-
-    k_dist = Counter(r[1] for r in rollouts)
-    print(f"\n=== answer K (<|mask|> count) distribution over {len(rollouts)} rollout(s): "
-          f"{dict(sorted(k_dist.items()))} ===")
-    n_multi = sum(1 for r in rollouts if r[1] >= 2)
-    print(f"rollouts with answer K>=2: {n_multi}/{len(rollouts)}; max K = {max(r[1] for r in rollouts)}")
-
-    # Select the most final-answer masks, breaking ties by generation order.
-    best = max(rollouts, key=lambda r: r[1])
-    _, mask_count, thought_mask_count, generated_text, completion_ids = best
-    print(
-        f"\nVisualizing rollout {best[0]} "
-        f"(K_answer={mask_count}, K_thought={thought_mask_count}): {generated_text!r}"
+    completion_ids, generated_text, total_mask_count = generate_completion(
+        model, processor, prompt_inputs, args.max_new_tokens, mask_token_id,
+        do_sample=do_sample, temperature=args.temperature,
+        top_p=args.top_p, top_k=args.top_k,
     )
+    _, thought_mask_count = split_answer_content(generated_text)
+    mask_count = max(0, total_mask_count - thought_mask_count)
+    print(f"Generated text: {generated_text!r}")
 
     if mask_count == 0:
-        print("No answer <|mask|> token in any rollout; skipping mask visualization.")
+        print("No answer <|mask|> token; skipping mask visualization.")
         return
 
     pred_masks = run_forward(model, prompt_inputs, completion_ids, mask_token_id, device)

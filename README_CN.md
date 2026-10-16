@@ -225,7 +225,7 @@ python infer.py \
 
 - `--per-mask-output`：每个预测掩码单独保存一张图，而不是合成一张。
 - `--mask-threshold`：掩码二值化的 sigmoid 阈值（默认 0.5；设为 0 时绘制连续热力图）。
-- `--temperature`、`--top-p`、`--num-rollouts`：改用采样解码。
+- `--temperature`、`--top-p`：改用采样解码。
 
 回答中每个定位到的实例写作 `<bbox>[x1, y1, x2, y2]</bbox><mask><|mask|></mask>`，边界框坐标归一化到 0–1000。每个 `<|mask|>` token 都会被解码成视觉编码器输入分辨率下的像素掩码。`<think>` 中的掩码用于支撑推理过程，不属于最终答案。
 

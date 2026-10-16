@@ -225,7 +225,7 @@ The script prints the generated text and saves the masks (and, with `--draw-bbox
 
 - `--per-mask-output`: save one image per predicted mask instead of a single composite.
 - `--mask-threshold`: sigmoid threshold for binarizing masks (default 0.5; 0 draws a soft heatmap).
-- `--temperature`, `--top-p`, `--num-rollouts`: sample instead of decoding greedily.
+- `--temperature`, `--top-p`: sample instead of decoding greedily.
 
 Each grounded instance in the answer is written as `<bbox>[x1, y1, x2, y2]</bbox><mask><|mask|></mask>`, with box coordinates normalized to 0–1000. Every `<|mask|>` token is decoded into a pixel mask at the resolution the vision encoder sees. Masks emitted inside `<think>` ground the reasoning and are not part of the final answer.
 
