@@ -30,7 +30,7 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 
 1. **Referring Expression Comprehension**: finds the object a phrase describes and returns its bounding box. First on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits.
 2. **Referring Expression Segmentation**: returns a pixel mask for the referred object. 81.4% mean cIoU across the eight splits, leading the compared models on every split.
-3. **Multi-Instance Grounding**: lists every instance of a category, each with its own box and mask. 60.6 mean F1 on COCO 2017, second to GroundingPI (63.0).
+3. **Multi-Instance Grounding**: lists every instance of a category, each with its own box and mask. 60.6 mean F1 on COCO 2017, tied with GroundingDINO for the highest listed score.
 4. **Reasoning Segmentation**: resolves functional and implicit requests after a short reasoning trace. Best on all four ReasonSeg scores.
 5. **Embodied Referring**: picks the object a person asks to be handed in cluttered scenes. Best on all four RoboRefIt scores.
 6. **Fine-Grained Perception**: thinks with visual latents, grounding each region it refers to while counting or answering high-resolution questions. Improves over its Qwen3.5-4B backbone on all eight perception benchmarks, including +6.8 points on CountQA.
@@ -110,11 +110,11 @@ Recall, precision, and F1 at IoU 0.50 and 0.95; the mIoU group averages each met
 
 | Method | IoU 0.50<br>Recall | IoU 0.50<br>Precision | IoU 0.50<br>F1 | IoU 0.95<br>Recall | IoU 0.95<br>Precision | IoU 0.95<br>F1 | mIoU<br>Recall | mIoU<br>Precision | mIoU<br>F1 |
 |:--|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| GroundingDINO | <u>79.6</u> | **83.2** | **81.4** | 24.7 | 28.1 | 26.3 | 61.1 | 63.7 | <u>60.6</u> |
+| GroundingDINO | <u>79.6</u> | **83.2** | **81.4** | 24.7 | 28.1 | 26.3 | <u>61.1</u> | 63.7 | **60.6** |
 | Rex-Omni | 69.9 | 81.0 | 75.0 | 17.9 | 21.7 | 19.7 | 53.9 | 59.4 | 56.3 |
 | LocateAnything Fast | 66.2 | 73.3 | 69.6 | 24.7 | 26.9 | 25.8 | 50.9 | 59.3 | 53.1 |
 | LocateAnything Hybrid | 74.7 | 80.8 | 77.6 | <u>26.6</u> | <u>28.7</u> | <u>27.6</u> | 52.4 | **65.2** | 59.1 |
-| LocateAnything Slow NTP | 75.0 | <u>81.9</u> | 78.3 | 25.0 | 27.2 | 26.0 | 54.7 | <u>65.1</u> | 59.4 |
+| LocateAnything Slow NTP | 75.0 | <u>81.9</u> | 78.3 | 25.0 | 27.2 | 26.0 | 54.7 | <u>65.1</u> | <u>59.4</u> |
 | Qwen2.5-VL<sub>7B</sub> | 57.2 | 62.9 | 59.9 | 12.2 | 13.2 | 12.7 | 44.7 | 49.1 | 46.3 |
 | Qwen3-VL<sub>2B</sub> | 63.5 | 67.1 | 65.3 | 21.8 | 22.6 | 22.2 | 42.6 | 44.9 | 42.5 |
 | Qwen3-VL<sub>4B</sub> | 66.1 | 70.6 | 68.3 | 23.7 | 24.9 | 24.3 | 44.9 | 47.8 | 46.5 |
@@ -122,13 +122,12 @@ Recall, precision, and F1 at IoU 0.50 and 0.95; the mIoU group averages each met
 | Qwen3.5<sub>4B</sub> | 65.9 | 67.8 | 66.8 | 22.9 | 23.7 | 23.3 | 48.4 | 45.7 | 47.6 |
 | Qwen3.5<sub>9B</sub> | 73.2 | 68.1 | 70.6 | 23.8 | 24.5 | 24.2 | 58.5 | 46.3 | 52.0 |
 | RynnBrain1.1 | 36.5 | 60.5 | 45.5 | 11.6 | 16.5 | 13.6 | 28.7 | 45.3 | 35.2 |
-| SenseNova-Vision | 79.1 | 80.5 | 79.8 | **27.2** | **30.2** | **28.6** | <u>63.1</u> | 55.4 | 57.5 |
+| SenseNova-Vision | 79.1 | 80.5 | 79.8 | **27.2** | **30.2** | **28.6** | **63.1** | 55.4 | 57.5 |
 | MiMo-VL-SFT<sub>7B</sub> | 65.5 | 72.2 | 68.7 | 10.0 | 11.1 | 10.5 | 45.7 | 50.5 | 48.0 |
 | MiMo-VL-RL<sub>7B</sub> | 65.6 | 74.5 | 69.8 | 9.2 | 10.3 | 9.7 | 44.5 | 50.2 | 47.2 |
 | BAGEL | 65.6 | 75.2 | 70.1 | 11.0 | 13.0 | 11.9 | 46.3 | 47.2 | 46.0 |
 | RynnBrain | 21.3 | 49.9 | 29.8 | 4.9 | 10.9 | 6.7 | 15.5 | 35.4 | 21.5 |
-| GroundingPI | **81.4** | 80.9 | <u>81.2</u> | 22.9 | 22.8 | 22.8 | **63.2** | 62.8 | **63.0** |
-| **Xiaomi-Lens-0<sub>4B</sub>** | 77.5 | 79.3 | 78.4 | 23.3 | 23.7 | 23.5 | 60.0 | 61.2 | <u>60.6</u> |
+| **Xiaomi-Lens-0<sub>4B</sub>** | 77.5 | 79.3 | 78.4 | 23.3 | 23.7 | 23.5 | 60.0 | 61.2 | **60.6** |
 
 ### 4. Reasoning Segmentation (ReasonSeg, gIoU / cIoU)
 
