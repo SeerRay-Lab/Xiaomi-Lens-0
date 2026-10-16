@@ -24,8 +24,6 @@ Xiaomi-Lens-0 是一个 4B 多模态大语言模型，通过像素级监督学�
 
 ## 📰 最新动态
 
-- **2026-10**：本仓库包含 Transformers 与 vLLM 推理代码、静态项目主页，以及覆盖六类能力的录制示例。
-
 ## ✨ 核心能力
 
 1. **指代表达理解**：根据自然语言描述找到目标物体并返回边界框。在 RefCOCO、RefCOCO+ 和 RefCOCOg 的八个数据划分中，七个排名第一，平均比基础模型 Qwen3.5-4B 高 5.6 个百分点。
@@ -199,26 +197,6 @@ Xiaomi-Lens-0 在航拍（57.1）、驾驶（68.6）和全景（62.3）领域的
 <p align="center"><a href="docs/assets/figures/lensbench_evaluation.png"><img src="docs/assets/figures/lensbench_evaluation.png" width="100%" alt="LensBench predictions across four domains, compared with ground-truth masks"></a></p>
 
 </details>
-
-### 8. 消融实验
-
-分别消融掩码监督和带掩码标注的推理数据，并以原始骨干模型为参照。指代表达理解为验证集 Prec@0.5，指代表达分割为 cIoU，感知为答案准确率。
-
-**掩码监督。** BBox-only 关闭掩码损失。加入掩码损失后六项指标全部提升；指代表达理解在 RefCOCO+ 上提升最多（+2.4），该数据集不含绝对位置词，需依靠外观区分目标与相邻物体。
-
-| 变体 | 指代理解<br>RefCOCO | 指代理解<br>RefCOCO+ | 指代理解<br>RefCOCOg | MME-RW-en | MME-RW-cn | CV-B |
-|:--|:-:|:-:|:-:|:-:|:-:|:-:|
-| Qwen3.5<sub>4B</sub> | 90.4 | 84.8 | 88.0 | 66.5 | 60.3 | 85.4 |
-| BBox-only | 93.5 | 89.7 | 90.2 | 68.8 | 66.1 | 87.9 |
-| **BBox + Mask** | **94.6** | **92.1** | **92.5** | **69.7** | **67.5** | **88.1** |
-
-**带掩码标注的推理轨迹。** Grounding-only 不使用推理数据。指代能力的提升主要来自定位数据，而对推理中间区域的监督使每个指代分割数据划分再提升 0.5–0.8 cIoU。
-
-| 变体 | 指代理解<br>RefCOCO | 指代理解<br>RefCOCO+ | 指代理解<br>RefCOCOg | 指代分割<br>RefCOCO | 指代分割<br>RefCOCO+ | 指代分割<br>RefCOCOg |
-|:--|:-:|:-:|:-:|:-:|:-:|:-:|
-| Qwen3.5<sub>4B</sub> | 90.4 | 84.8 | 88.0 | — | — | — |
-| Grounding-only | 94.5 | 91.5 | 92.0 | 82.7 | 79.1 | 80.6 |
-| **+ 推理数据** | **94.6** | **92.1** | **92.5** | **83.4** | **79.9** | **81.1** |
 
 ## 🚀 快速开始
 

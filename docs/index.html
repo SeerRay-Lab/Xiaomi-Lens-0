@@ -875,24 +875,6 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
       <img src="assets/figures/radar_comparison.png" width="3000" height="570" loading="lazy" alt="Radar charts comparing Xiaomi-Lens-0 with baselines on box grounding, referring segmentation, perception, and LensBench.">
     </figure>
     <p class="figure-caption">At a glance, from left to right: box grounding F1, referring segmentation cIoU, fine-grained perception accuracy, and LensBench cIoU.</p>
-    <div class="result-card" id="ablation" style="margin-top:28px">
-      <div class="result-head two">
-        <div><p class="eyebrow">Ablations</p><h3>What mask supervision and grounded reasoning add</h3></div>
-        <p>We ablate mask supervision and grounded reasoning data, with the original backbone as a reference. Scores are validation-set Prec@0.5 for REC, cIoU for RES, and answer accuracy for perception.</p>
-      </div>
-      <div class="result-body" style="grid-template-columns:minmax(0,1fr)">
-        <div class="panel-box"><h4><span class="n">01</span>Mask supervision</h4><p class="sub">BBox-only disables the mask loss</p><div class="table-wrap"><table><thead><tr><th class="method">Variant</th><th>RefCOCO</th><th>RefCOCO+</th><th>RefCOCOg</th><th>MME-RW-en</th><th>MME-RW-cn</th><th>CV-B</th></tr></thead><tbody>
-<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>90.4</td><td>84.8</td><td>88.0</td><td>66.5</td><td>60.3</td><td>85.4</td></tr>
-<tr><td class="method">BBox-only</td><td>93.5</td><td>89.7</td><td>90.2</td><td>68.8</td><td>66.1</td><td>87.9</td></tr>
-<tr class="ours"><td class="method">BBox + Mask</td><td><b>94.6</b></td><td><b>92.1</b></td><td><b>92.5</b></td><td><b>69.7</b></td><td><b>67.5</b></td><td><b>88.1</b></td></tr>
-</tbody></table></div><p class="note">Adding the mask loss raises all six scores. The REC gain is largest on RefCOCO+ (+2.4), where location words are excluded and appearance must separate the target from its neighbors.</p></div>
-        <div class="panel-box"><h4><span class="n">02</span>Grounded reasoning traces</h4><p class="sub">Grounding-only omits the reasoning data</p><div class="table-wrap"><table><thead><tr><th class="method">Variant</th><th>REC<br>RefCOCO</th><th>REC<br>RefCOCO+</th><th>REC<br>RefCOCOg</th><th>RES<br>RefCOCO</th><th>RES<br>RefCOCO+</th><th>RES<br>RefCOCOg</th></tr></thead><tbody>
-<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>90.4</td><td>84.8</td><td>88.0</td><td>—</td><td>—</td><td>—</td></tr>
-<tr><td class="method">Grounding-only</td><td>94.5</td><td>91.5</td><td>92.0</td><td>82.7</td><td>79.1</td><td>80.6</td></tr>
-<tr class="ours"><td class="method">+ Reasoning</td><td><b>94.6</b></td><td><b>92.1</b></td><td><b>92.5</b></td><td><b>83.4</b></td><td><b>79.9</b></td><td><b>81.1</b></td></tr>
-</tbody></table></div><p class="note">Grounding data drive most of the referring gain. Supervising intermediate regions in the reasoning trace adds 0.5–0.8 cIoU on every RES split, mainly sharpening final masks.</p></div>
-      </div>
-    </div>
   </div>
 </section>
 

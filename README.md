@@ -24,8 +24,6 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 
 ## 📰 News
 
-- **2026-10**: This repository includes Transformers and vLLM inference code, a static project page, and recorded examples across six capability domains.
-
 ## ✨ What it does
 
 1. **Referring Expression Comprehension**: finds the object a phrase describes and returns its bounding box. First on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits, 5.6 points above its Qwen3.5-4B backbone on average.
@@ -199,26 +197,6 @@ Marginal results pool single and multiple targets. Each cell reports mask cIoU /
 <p align="center"><a href="docs/assets/figures/lensbench_evaluation.png"><img src="docs/assets/figures/lensbench_evaluation.png" width="100%" alt="LensBench predictions across four domains, compared with ground-truth masks"></a></p>
 
 </details>
-
-### 8. Ablations
-
-We ablate mask supervision and grounded reasoning data, with the original backbone as a reference. Scores are validation-set Prec@0.5 for REC, cIoU for RES, and answer accuracy for perception.
-
-**Mask supervision.** BBox-only disables the mask loss. Adding it raises all six scores; the REC gain is largest on RefCOCO+ (+2.4), where location words are excluded and appearance must separate the target from its neighbors.
-
-| Variant | REC<br>RefCOCO | REC<br>RefCOCO+ | REC<br>RefCOCOg | MME-RW-en | MME-RW-cn | CV-B |
-|:--|:-:|:-:|:-:|:-:|:-:|:-:|
-| Qwen3.5<sub>4B</sub> | 90.4 | 84.8 | 88.0 | 66.5 | 60.3 | 85.4 |
-| BBox-only | 93.5 | 89.7 | 90.2 | 68.8 | 66.1 | 87.9 |
-| **BBox + Mask** | **94.6** | **92.1** | **92.5** | **69.7** | **67.5** | **88.1** |
-
-**Grounded reasoning traces.** Grounding-only omits the reasoning data. Grounding data drive most of the referring gain, and supervising intermediate regions adds 0.5–0.8 cIoU on every RES split.
-
-| Variant | REC<br>RefCOCO | REC<br>RefCOCO+ | REC<br>RefCOCOg | RES<br>RefCOCO | RES<br>RefCOCO+ | RES<br>RefCOCOg |
-|:--|:-:|:-:|:-:|:-:|:-:|:-:|
-| Qwen3.5<sub>4B</sub> | 90.4 | 84.8 | 88.0 | — | — | — |
-| Grounding-only | 94.5 | 91.5 | 92.0 | 82.7 | 79.1 | 80.6 |
-| **+ Reasoning** | **94.6** | **92.1** | **92.5** | **83.4** | **79.9** | **81.1** |
 
 ## 🚀 Quick Start
 
