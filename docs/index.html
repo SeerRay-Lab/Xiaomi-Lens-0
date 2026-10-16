@@ -200,7 +200,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .figure-card + .figure-caption { padding-inline: 4px; }
 .enlarge { display: inline-block; margin-top: 10px; font: 600 12px var(--mono); color: var(--orange); }
 .enlarge:hover { text-decoration: underline; }
-.flow { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--outline); border-radius: 22px; overflow: hidden; background: var(--white); }
+.flow { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); border: 2px solid var(--outline); border-radius: 22px; overflow: hidden; background: var(--white); }
 .flow li { padding: 25px; border-left: 1px solid var(--line); }
 .flow li:first-child { border-left: 0; }
 .flow .num { font: 600 11px var(--mono); color: var(--orange); }
@@ -243,6 +243,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .big-score b { display: block; font: 400 64px/1 var(--display); color: var(--orange); letter-spacing: -2px; font-variant-numeric: tabular-nums; }
 .big-score span { font: 600 10px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .result-head > p { font-size: 15px; }
+.result-head.two { grid-template-columns: 1fr 1.2fr; }
 .result-body { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 26px; }
 .panel-box { border: 1px solid var(--line); border-radius: 18px; padding: 20px; background: #fcfdfd; }
 .panel-box h4 { font-size: 17px; font-weight: 500; display: flex; gap: 10px; align-items: center; }
@@ -337,7 +338,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   .filters, .tabs.domain-tabs { grid-template-columns: minmax(0, 1fr); }
   .filters .chip[data-filter="all"] { grid-row: auto; justify-self: start; }
   .result-card { padding: 20px; }
-  .result-head { grid-template-columns: 1fr; }
+  .result-head, .result-head.two { grid-template-columns: 1fr; }
   .big-score { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -398,7 +399,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 
   <div class="metrics" aria-label="Key results">
     <div class="metric"><div class="metric-value">81.4</div><div class="metric-name">Referring Expression Segmentation</div><div class="metric-note">mean cIoU, 8 RefCOCO-family splits</div></div>
-    <div class="metric"><div class="metric-value">94.6</div><div class="metric-name">Referring Expression Comprehension</div><div class="metric-note">Pres@0.5, RefCOCO val</div></div>
+    <div class="metric"><div class="metric-value">94.6</div><div class="metric-name">Referring Expression Comprehension</div><div class="metric-note">Prec@0.5, RefCOCO val</div></div>
     <div class="metric"><div class="metric-value">68.0</div><div class="metric-name">ReasonSeg test</div><div class="metric-note">gIoU</div></div>
     <div class="metric"><div class="metric-value">+6.8</div><div class="metric-name">CountQA over backbone</div><div class="metric-note">50.6 vs. 43.8 for Qwen3.5-4B</div></div>
     <div class="metric"><div class="metric-value">4,800</div><div class="metric-name">LensBench instruction-level samples</div><div class="metric-note">1,200 paired units across 4 domains</div></div>
@@ -526,6 +527,11 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
         <h4>Lightweight decoder</h4>
         <p>Patch-wise compatibility scores between the latent and the grid are reassembled and upsampled into a mask.</p>
       </li>
+      <li>
+        <span class="num">04</span>
+        <h4>Thinking with visual latents</h4>
+        <p>Mask tokens placed inside the reasoning trace decode to masks for the regions it discusses. Grounded reasoning traces supervise these intermediate regions.</p>
+      </li>
     </ol>
     <div class="training">
       <div>
@@ -567,14 +573,27 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
       <p class="figure-caption">(a) After image and region screening, an MLLM generates question–answer pairs with multiple-choice or numeric answers. (b) Rule-based filters remove flawed questions, options are shuffled, and an independent checker verifies the answers.</p>
     </div>
     <div id="data-lens" role="tabpanel" hidden>
-      <figure class="figure-card"><img data-lazy="assets/figures/lensbench_data_pipeline.png" width="2000" height="1339" alt="LensBench design across four domains and its construction pipeline."></figure>
+      <figure class="figure-card"><img data-lazy="assets/figures/lensbench_data_pipeline.png" width="2000" height="1340" alt="LensBench design across four domains and its construction pipeline."></figure>
       <div class="facts">
         <div class="fact"><b>4</b><span>domains: General, Aerial, Driving, Panoramic</span></div>
         <div class="fact"><b>300</b><span>evaluation units per domain; 1,200 paired units in total</span></div>
         <div class="fact"><b>2 × 2</b><span>Single/Multiple targets × Explicit/Implicit instructions</span></div>
         <div class="fact"><b>4,800</b><span>instruction-level evaluation samples in total</span></div>
       </div>
-      <div class="actions"><a class="button" href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench on Hugging Face ↗</a></div>
+      <p>LensBench contains 1,200 human-reviewed paired units and 4,800 instructions across general, aerial, driving, and panoramic imagery (300 units per domain). Each unit combines single/multiple targets with explicit/implicit wording. The two wordings share the same target mask; multiple targets use the union mask and its enclosing box. Targets and masks are fixed before instruction synthesis, followed by automated consistency checks and human review of each complete unit.</p>
+      <p>Xiaomi-Lens-0 leads mask cIoU in aerial (57.1), driving (68.6), and panoramic (62.3) imagery, and leads both metrics on explicit instructions. Implicit instructions remain challenging: cIoU drops from 71.4 to 54.7, while box Prec@0.5 drops from 85.0 to 70.0. The gap is largest for multiple targets in panoramic scenes, where cIoU falls from 71.8 to 48.9 and box Prec@0.5 from 81.3 to 48.7.</p>
+      <details class="scores"><summary>LensBench detailed results</summary><p class="note">Marginal results pool single and multiple targets. Each cell reports mask cIoU / box Prec@0.5 (%, higher is better). Bold marks best; underline marks second best.</p><div class="table-wrap"><table><thead><tr><th class="method" rowspan="2">Method</th><th colspan="2">Explicit</th><th colspan="2">Implicit</th><th colspan="2">General</th><th colspan="2">Aerial</th><th colspan="2">Driving</th><th colspan="2">Panoramic</th></tr><tr><th>cIoU</th><th>Prec@0.5</th><th>cIoU</th><th>Prec@0.5</th><th>cIoU</th><th>Prec@0.5</th><th>cIoU</th><th>Prec@0.5</th><th>cIoU</th><th>Prec@0.5</th><th>cIoU</th><th>Prec@0.5</th></tr></thead><tbody><tr><td class="method">GPT-5.6-Sol</td><td>63.8</td><td>73.2</td><td><u>61.2</u></td><td><u>70.0</u></td><td><u>68.4</u></td><td>67.9</td><td>42.2</td><td>58.5</td><td><u>68.4</u></td><td><b>81.8</b></td><td>57.1</td><td><u>78.3</u></td></tr>
+<tr><td class="method">Gemini-3.6-Flash</td><td>61.4</td><td><u>74.5</u></td><td>61.0</td><td><b>70.3</b></td><td>63.6</td><td>65.8</td><td><u>50.1</u></td><td><u>62.5</u></td><td>66.8</td><td><u>81.0</u></td><td><u>60.8</u></td><td><b>80.3</b></td></tr>
+<tr><td class="method">MiMo-V2.5</td><td>51.4</td><td>52.2</td><td>47.4</td><td>46.8</td><td>54.2</td><td>45.2</td><td>32.6</td><td>38.6</td><td>50.5</td><td>52.8</td><td>45.4</td><td>61.4</td></tr>
+<tr><td class="method">Seed-2.1-Pro</td><td>62.1</td><td>70.2</td><td>55.9</td><td>64.5</td><td>60.6</td><td>56.7</td><td><u>50.1</u></td><td>58.5</td><td>66.8</td><td>77.4</td><td>59.9</td><td>76.7</td></tr>
+<tr><td class="method">Qwen3.8-Max</td><td><u>67.6</u></td><td>69.2</td><td><b>64.5</b></td><td>63.8</td><td><b>74.2</b></td><td><b>79.7</b></td><td>33.5</td><td><u>62.5</u></td><td>58.0</td><td>57.7</td><td><u>60.8</u></td><td>66.2</td></tr>
+<tr><td class="method">Kimi-K3</td><td>29.4</td><td>39.1</td><td>28.3</td><td>33.0</td><td>38.5</td><td>26.1</td><td>13.8</td><td>44.9</td><td>47.2</td><td>31.1</td><td>13.4</td><td>42.1</td></tr>
+<tr><td class="method">GLM-5.3-Flash</td><td>44.3</td><td>37.5</td><td>43.5</td><td>33.3</td><td>48.9</td><td>26.3</td><td>28.0</td><td>33.4</td><td>51.6</td><td>47.5</td><td>30.6</td><td>34.4</td></tr>
+<tr><td class="method">DeepSeek-V4-Flash-Vision-Exp</td><td>41.8</td><td>30.7</td><td>41.1</td><td>27.3</td><td>46.1</td><td>28.1</td><td>25.9</td><td>28.9</td><td>43.9</td><td>27.9</td><td>32.8</td><td>31.0</td></tr>
+<tr><td class="method">SAM 3</td><td>17.3</td><td>38.1</td><td>15.4</td><td>19.5</td><td>23.8</td><td>24.8</td><td>4.3</td><td>27.3</td><td>27.7</td><td>35.1</td><td>11.1</td><td>27.9</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td><b>71.4</b></td><td><b>85.0</b></td><td>54.7</td><td><u>70.0</u></td><td>63.9</td><td><u>79.1</u></td><td><b>57.1</b></td><td><b>79.6</b></td><td><b>68.6</b></td><td>79.4</td><td><b>62.3</b></td><td>72.1</td></tr></tbody></table></div></details>
+      <figure class="figure-card"><a href="assets/figures/lensbench_evaluation.png"><img data-lazy="assets/figures/lensbench_evaluation.png" width="2600" height="1335" alt="LensBench qualitative comparisons across four visual domains; red overlays show predicted and ground-truth regions."></a></figure><p class="figure-caption">Single and multiple targets under explicit and implicit instructions across four domains. Click the image for the full-resolution comparison.</p>
+            <div class="actions"><a class="button" href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench on Hugging Face ↗</a></div>
     </div>
   </div>
 </section>
@@ -599,11 +618,11 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
     <div class="result-card" id="result-rec" role="tabpanel">
       <div class="result-head">
         <div><p class="eyebrow">01 · Referring Expression Comprehension</p><h3>RefCOCO / RefCOCO+ / RefCOCOg</h3></div>
-        <div class="big-score"><b>92.9</b><span>Xiaomi-Lens-0 · mean Pres@0.5 · 8 splits</span></div>
-        <p>Ranks first on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits.</p>
+        <div class="big-score"><b>92.9</b><span>Xiaomi-Lens-0 · mean Prec@0.5 · 8 splits</span></div>
+        <p>Ranks first on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits, 5.6 points above its Qwen3.5-4B backbone on average.</p>
       </div>
       <div class="result-body">
-        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean Pres@0.5 · 8 splits · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">92.9</span></li><li><span class="name">Youtu-VL<sub>4B</sub></span><span class="track"><span class="fill" style="width:87.1%"></span></span><span class="val">91.8</span></li><li><span class="name">Florence-2</span><span class="track"><span class="fill" style="width:78.9%"></span></span><span class="val">91.1</span></li><li><span class="name">Qwen3-VL-Seg<sub>4B</sub></span><span class="track"><span class="fill" style="width:62.4%"></span></span><span class="val">89.7</span></li><li><span class="name">InternVL-3.5<sub>4B</sub></span><span class="track"><span class="fill" style="width:58.9%"></span></span><span class="val">89.4</span></li><li><span class="name">MLLMSeg<sub>InternVL2.5-4B</sub></span><span class="track"><span class="fill" style="width:44.8%"></span></span><span class="val">88.2</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">mean Prec@0.5 · 8 splits · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">92.9</span></li><li><span class="name">Youtu-VL<sub>4B</sub></span><span class="track"><span class="fill" style="width:87.1%"></span></span><span class="val">91.8</span></li><li><span class="name">Florence-2</span><span class="track"><span class="fill" style="width:78.9%"></span></span><span class="val">91.1</span></li><li><span class="name">Qwen3-VL-Seg<sub>4B</sub></span><span class="track"><span class="fill" style="width:62.4%"></span></span><span class="val">89.7</span></li><li><span class="name">InternVL-3.5<sub>4B</sub></span><span class="track"><span class="fill" style="width:58.9%"></span></span><span class="val">89.4</span></li><li><span class="name">MLLMSeg<sub>InternVL2.5-4B</sub></span><span class="track"><span class="fill" style="width:44.8%"></span></span><span class="val">88.2</span></li></ol></div>
         <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>RefCOCO Val</span><b class="best">94.6</b></div><div><span>RefCOCO TestA</span><b class="best">96.2</b></div><div><span>RefCOCO TestB</span><b class="best">92.3</b></div><div><span>RefCOCO+ Val</span><b class="best">92.1</b></div><div><span>RefCOCO+ TestA</span><b class="best">94.9</b></div><div><span>RefCOCO+ TestB</span><b class="best">88.5</b></div><div><span>RefCOCOg Val</span><b class="best">92.5</b></div><div><span>RefCOCOg Test</span><b class="">92.4</b></div></div></div>
       </div>
       <details class="scores"><summary>View detailed scores</summary>
@@ -707,12 +726,12 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
     <div class="result-card" id="result-multi" role="tabpanel" hidden>
       <div class="result-head">
         <div><p class="eyebrow">03 · Multi-Instance Grounding</p><h3>COCO 2017</h3></div>
-        <div class="big-score"><b>60.6</b><span>Xiaomi-Lens-0 · F1 · mean over IoU 0.50–0.95</span></div>
-        <p>Ties GroundingDINO for the highest mIoU F1 among the listed models.</p>
+        <div class="big-score"><b>63.9</b><span>Xiaomi-Lens-0 · F1 · mean over IoU 0.50–0.95</span></div>
+        <p>Highest mIoU F1 among the compared models, 0.9 points above GroundingPI.</p>
       </div>
       <div class="result-body">
-        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">F1 · mean over IoU 0.50–0.95 · top models</p><ol class="bars"><li><span class="name">GroundingDINO</span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">60.6</span></li><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">60.6</span></li><li><span class="name">LocateAnything Slow NTP</span><span class="track"><span class="fill" style="width:78.6%"></span></span><span class="val">59.4</span></li><li><span class="name">LocateAnything Hybrid</span><span class="track"><span class="fill" style="width:73.2%"></span></span><span class="val">59.1</span></li><li><span class="name">SenseNova-Vision</span><span class="track"><span class="fill" style="width:44.6%"></span></span><span class="val">57.5</span></li></ol></div>
-        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>IoU 0.50 Recall</span><b class="">77.5</b></div><div><span>IoU 0.50 Precision</span><b class="">79.3</b></div><div><span>IoU 0.50 F1</span><b class="">78.4</b></div><div><span>IoU 0.95 Recall</span><b class="">23.3</b></div><div><span>IoU 0.95 Precision</span><b class="">23.7</b></div><div><span>IoU 0.95 F1</span><b class="">23.5</b></div><div><span>mIoU Recall</span><b class="">60.0</b></div><div><span>mIoU Precision</span><b class="">61.2</b></div><div><span>mIoU F1</span><b class="">60.6</b></div></div></div>
+        <div class="panel-box"><h4><span class="n">01</span>Score comparison</h4><p class="sub">F1 · mean over IoU 0.50–0.95 · top models</p><ol class="bars"><li class="ours"><span class="name">Xiaomi-Lens-0<sub>4B</sub></span><span class="track"><span class="fill" style="width:100.0%"></span></span><span class="val">63.9</span></li><li><span class="name">GroundingPI</span><span class="track"><span class="fill" style="width:98.6%"></span></span><span class="val">63.0</span></li><li><span class="name">GroundingDINO</span><span class="track"><span class="fill" style="width:94.8%"></span></span><span class="val">60.6</span></li><li><span class="name">LocateAnything Slow NTP</span><span class="track"><span class="fill" style="width:93.0%"></span></span><span class="val">59.4</span></li><li><span class="name">LocateAnything Hybrid</span><span class="track"><span class="fill" style="width:92.5%"></span></span><span class="val">59.1</span></li></ol></div>
+        <div class="panel-box"><h4><span class="n">02</span>Xiaomi-Lens-0 by split</h4><p class="sub">Orange marks a best score in the table</p><div class="split-grid"><div><span>IoU 0.50 Recall</span><b>79.6</b></div><div><span>IoU 0.50 Precision</span><b>81.1</b></div><div><span>IoU 0.50 F1</span><b>80.4</b></div><div><span>IoU 0.95 Recall</span><b class="best">27.2</b></div><div><span>IoU 0.95 Precision</span><b>27.7</b></div><div><span>IoU 0.95 F1</span><b>27.4</b></div><div><span>mIoU Recall</span><b class="best">63.4</b></div><div><span>mIoU Precision</span><b>64.5</b></div><div><span>mIoU F1</span><b class="best">63.9</b></div></div></div>
       </div>
       <details class="scores"><summary>View detailed scores</summary>
         <p class="note"><b>Bold</b> marks the best score and <u>underline</u> the second best.</p>
@@ -726,24 +745,23 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 </tr>
 <tr><th>Recall</th><th>Precision</th><th>F1</th><th>Recall</th><th>Precision</th><th>F1</th><th>Recall</th><th>Precision</th><th>F1</th></tr>
 </thead><tbody>
-<tr><td class="method">GroundingDINO</td><td class="second">79.6</td><td class="best">83.2</td><td class="best">81.4</td><td>24.7</td><td>28.1</td><td>26.3</td><td class="second">61.1</td><td>63.7</td><td class="best">60.6</td></tr>
+<tr><td class="method">GroundingDINO</td><td><u>79.6</u></td><td><b>83.2</b></td><td><b>81.4</b></td><td>24.7</td><td>28.1</td><td>26.3</td><td>61.1</td><td>63.7</td><td>60.6</td></tr>
 <tr><td class="method">Rex-Omni</td><td>69.9</td><td>81.0</td><td>75.0</td><td>17.9</td><td>21.7</td><td>19.7</td><td>53.9</td><td>59.4</td><td>56.3</td></tr>
 <tr><td class="method">LocateAnything Fast</td><td>66.2</td><td>73.3</td><td>69.6</td><td>24.7</td><td>26.9</td><td>25.8</td><td>50.9</td><td>59.3</td><td>53.1</td></tr>
-<tr><td class="method">LocateAnything Hybrid</td><td>74.7</td><td>80.8</td><td>77.6</td><td class="second">26.6</td><td class="second">28.7</td><td class="second">27.6</td><td>52.4</td><td class="best">65.2</td><td>59.1</td></tr>
-<tr><td class="method">LocateAnything Slow NTP</td><td>75.0</td><td class="second">81.9</td><td>78.3</td><td>25.0</td><td>27.2</td><td>26.0</td><td>54.7</td><td class="second">65.1</td><td class="second">59.4</td></tr>
+<tr><td class="method">LocateAnything Hybrid</td><td>74.7</td><td>80.8</td><td>77.6</td><td><u>26.6</u></td><td><u>28.7</u></td><td><u>27.6</u></td><td>52.4</td><td><b>65.2</b></td><td>59.1</td></tr>
+<tr><td class="method">LocateAnything Slow NTP</td><td>75.0</td><td><u>81.9</u></td><td>78.3</td><td>25.0</td><td>27.2</td><td>26.0</td><td>54.7</td><td><u>65.1</u></td><td>59.4</td></tr>
 <tr><td class="method">Qwen2.5-VL<sub>7B</sub></td><td>57.2</td><td>62.9</td><td>59.9</td><td>12.2</td><td>13.2</td><td>12.7</td><td>44.7</td><td>49.1</td><td>46.3</td></tr>
 <tr><td class="method">Qwen3-VL<sub>2B</sub></td><td>63.5</td><td>67.1</td><td>65.3</td><td>21.8</td><td>22.6</td><td>22.2</td><td>42.6</td><td>44.9</td><td>42.5</td></tr>
 <tr><td class="method">Qwen3-VL<sub>4B</sub></td><td>66.1</td><td>70.6</td><td>68.3</td><td>23.7</td><td>24.9</td><td>24.3</td><td>44.9</td><td>47.8</td><td>46.5</td></tr>
 <tr><td class="method">Qwen3-VL<sub>8B</sub></td><td>65.7</td><td>69.5</td><td>67.5</td><td>23.9</td><td>25.1</td><td>24.5</td><td>44.8</td><td>47.3</td><td>46.3</td></tr>
-<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>65.9</td><td>67.8</td><td>66.8</td><td>22.9</td><td>23.7</td><td>23.3</td><td>48.4</td><td>45.7</td><td>47.6</td></tr>
-<tr><td class="method">Qwen3.5<sub>9B</sub></td><td>73.2</td><td>68.1</td><td>70.6</td><td>23.8</td><td>24.5</td><td>24.2</td><td>58.5</td><td>46.3</td><td>52.0</td></tr>
 <tr><td class="method">RynnBrain1.1</td><td>36.5</td><td>60.5</td><td>45.5</td><td>11.6</td><td>16.5</td><td>13.6</td><td>28.7</td><td>45.3</td><td>35.2</td></tr>
-<tr><td class="method">SenseNova-Vision</td><td>79.1</td><td>80.5</td><td>79.8</td><td class="best">27.2</td><td class="best">30.2</td><td class="best">28.6</td><td class="best">63.1</td><td>55.4</td><td>57.5</td></tr>
+<tr><td class="method">SenseNova-Vision</td><td>79.1</td><td>80.5</td><td>79.8</td><td><b>27.2</b></td><td><b>30.2</b></td><td><b>28.6</b></td><td>63.1</td><td>55.4</td><td>57.5</td></tr>
+<tr><td class="method">GroundingPI</td><td><b>81.4</b></td><td>80.9</td><td><u>81.2</u></td><td>22.9</td><td>22.8</td><td>22.8</td><td><u>63.2</u></td><td>62.8</td><td><u>63.0</u></td></tr>
 <tr><td class="method">MiMo-VL-SFT<sub>7B</sub></td><td>65.5</td><td>72.2</td><td>68.7</td><td>10.0</td><td>11.1</td><td>10.5</td><td>45.7</td><td>50.5</td><td>48.0</td></tr>
 <tr><td class="method">MiMo-VL-RL<sub>7B</sub></td><td>65.6</td><td>74.5</td><td>69.8</td><td>9.2</td><td>10.3</td><td>9.7</td><td>44.5</td><td>50.2</td><td>47.2</td></tr>
 <tr><td class="method">BAGEL</td><td>65.6</td><td>75.2</td><td>70.1</td><td>11.0</td><td>13.0</td><td>11.9</td><td>46.3</td><td>47.2</td><td>46.0</td></tr>
 <tr><td class="method">RynnBrain</td><td>21.3</td><td>49.9</td><td>29.8</td><td>4.9</td><td>10.9</td><td>6.7</td><td>15.5</td><td>35.4</td><td>21.5</td></tr>
-<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td>77.5</td><td>79.3</td><td>78.4</td><td>23.3</td><td>23.7</td><td>23.5</td><td>60.0</td><td>61.2</td><td class="best">60.6</td></tr>
+<tr class="ours"><td class="method">Xiaomi-Lens-0<sub>4B</sub></td><td><u>79.6</u></td><td>81.1</td><td>80.4</td><td><b>27.2</b></td><td>27.7</td><td>27.4</td><td><b>63.4</b></td><td>64.5</td><td><b>63.9</b></td></tr>
 </tbody></table></div>
 
       </details>
@@ -854,9 +872,27 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
       </details>
     </div>
     <figure class="figure-card" style="margin-top:28px">
-      <img src="assets/figures/radar_comparison.png" width="2000" height="492" loading="lazy" alt="Radar charts comparing Xiaomi-Lens-0 with baselines on box grounding, referring segmentation, and perception.">
+      <img src="assets/figures/radar_comparison.png" width="3000" height="570" loading="lazy" alt="Radar charts comparing Xiaomi-Lens-0 with baselines on box grounding, referring segmentation, perception, and LensBench.">
     </figure>
-    <p class="figure-caption">At a glance: box grounding (left), referring segmentation (middle), and perception (right).</p>
+    <p class="figure-caption">At a glance, from left to right: box grounding F1, referring segmentation cIoU, fine-grained perception accuracy, and LensBench cIoU.</p>
+    <div class="result-card" id="ablation" style="margin-top:28px">
+      <div class="result-head two">
+        <div><p class="eyebrow">Ablations</p><h3>What mask supervision and grounded reasoning add</h3></div>
+        <p>We ablate mask supervision and grounded reasoning data, with the original backbone as a reference. Scores are validation-set Prec@0.5 for REC, cIoU for RES, and answer accuracy for perception.</p>
+      </div>
+      <div class="result-body" style="grid-template-columns:minmax(0,1fr)">
+        <div class="panel-box"><h4><span class="n">01</span>Mask supervision</h4><p class="sub">BBox-only disables the mask loss</p><div class="table-wrap"><table><thead><tr><th class="method">Variant</th><th>RefCOCO</th><th>RefCOCO+</th><th>RefCOCOg</th><th>MME-RW-en</th><th>MME-RW-cn</th><th>CV-B</th></tr></thead><tbody>
+<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>90.4</td><td>84.8</td><td>88.0</td><td>66.5</td><td>60.3</td><td>85.4</td></tr>
+<tr><td class="method">BBox-only</td><td>93.5</td><td>89.7</td><td>90.2</td><td>68.8</td><td>66.1</td><td>87.9</td></tr>
+<tr class="ours"><td class="method">BBox + Mask</td><td><b>94.6</b></td><td><b>92.1</b></td><td><b>92.5</b></td><td><b>69.7</b></td><td><b>67.5</b></td><td><b>88.1</b></td></tr>
+</tbody></table></div><p class="note">Adding the mask loss raises all six scores. The REC gain is largest on RefCOCO+ (+2.4), where location words are excluded and appearance must separate the target from its neighbors.</p></div>
+        <div class="panel-box"><h4><span class="n">02</span>Grounded reasoning traces</h4><p class="sub">Grounding-only omits the reasoning data</p><div class="table-wrap"><table><thead><tr><th class="method">Variant</th><th>REC<br>RefCOCO</th><th>REC<br>RefCOCO+</th><th>REC<br>RefCOCOg</th><th>RES<br>RefCOCO</th><th>RES<br>RefCOCO+</th><th>RES<br>RefCOCOg</th></tr></thead><tbody>
+<tr><td class="method">Qwen3.5<sub>4B</sub></td><td>90.4</td><td>84.8</td><td>88.0</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td class="method">Grounding-only</td><td>94.5</td><td>91.5</td><td>92.0</td><td>82.7</td><td>79.1</td><td>80.6</td></tr>
+<tr class="ours"><td class="method">+ Reasoning</td><td><b>94.6</b></td><td><b>92.1</b></td><td><b>92.5</b></td><td><b>83.4</b></td><td><b>79.9</b></td><td><b>81.1</b></td></tr>
+</tbody></table></div><p class="note">Grounding data drive most of the referring gain. Supervising intermediate regions in the reasoning trace adds 0.5–0.8 cIoU on every RES split, mainly sharpening final masks.</p></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -896,7 +932,6 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
       <span><a href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0">Code</a> · <a href="https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0">Model weights</a> · <a href="https://huggingface.co/datasets/SeerRay-Lab/LensBench">LensBench</a> · Built on <a href="https://github.com/QwenLM">Qwen3.5</a>.</span>
     </div>
   </div>
-  <p>Fonts and demonstration media retain their respective licenses. <a href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a>.</p>
 </footer>
 
 <script>

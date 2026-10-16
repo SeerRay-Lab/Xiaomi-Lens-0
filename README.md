@@ -12,7 +12,7 @@
 <p>English | <a href="README_CN.md">简体中文</a></p>
 </div>
 
-Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-level supervision through a shared visual backbone. Starting from Qwen3.5-4B, it decodes each generated `<|mask|>` token into a mask with a lightweight decoder, so the same model that answers in text can point at the regions it refers to, in a final answer or in the middle of its reasoning.
+Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-level supervision through a shared visual backbone. Starting from Qwen3.5-4B, it decodes each generated `<|mask|>` token into a mask with a lightweight decoder, so the same model that answers in text can point at the regions it refers to, in a final answer or in the middle of its reasoning. It improves referring comprehension over Qwen3.5-4B by 5.6 points on average across eight RefCOCO-family splits and improves scores on all eight fine-grained perception benchmarks.
 
 <p align="center"><a href="https://seerray-lab.github.io/Xiaomi-Lens-0/#video"><img src="docs/assets/video/overview_thumb.jpg" width="100%" alt="Xiaomi-Lens-0 overview video: play on the project page"></a></p>
 
@@ -28,9 +28,9 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 
 ## ✨ What it does
 
-1. **Referring Expression Comprehension**: finds the object a phrase describes and returns its bounding box. First on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits.
+1. **Referring Expression Comprehension**: finds the object a phrase describes and returns its bounding box. First on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits, 5.6 points above its Qwen3.5-4B backbone on average.
 2. **Referring Expression Segmentation**: returns a pixel mask for the referred object. 81.4% mean cIoU across the eight splits, leading the compared models on every split.
-3. **Multi-Instance Grounding**: lists every instance of a category, each with its own box and mask. 60.6 mean F1 on COCO 2017, tied with GroundingDINO for the highest listed score.
+3. **Multi-Instance Grounding**: lists every instance of a category, each with its own box and mask. 63.9 mean F1 on COCO 2017, highest among the compared models and 0.9 points above GroundingPI.
 4. **Reasoning Segmentation**: resolves functional and implicit requests after a short reasoning trace. Best on all four ReasonSeg scores.
 5. **Embodied Referring**: picks the object a person asks to be handed in cluttered scenes. Best on all four RoboRefIt scores.
 6. **Fine-Grained Perception**: thinks with visual latents, grounding each region it refers to while counting or answering high-resolution questions. Improves over its Qwen3.5-4B backbone on all eight perception benchmarks, including +6.8 points on CountQA.
@@ -40,6 +40,8 @@ We also release **[LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBe
 ## 🧠 Method
 
 Each generated `<|mask|>` token has a contextual state, or visual latent, that represents a target region given the image, instruction, and preceding response. A lightweight decoder combines this state with a single feature grid from the vision encoder before spatial merging to predict a mask. The model needs no separate segmentation encoder or multi-scale feature fusion. Joint language and mask training supervises the shared representation used for both spatial predictions and textual answers.
+
+The same decoder supports **thinking with visual latents**: `<|mask|>` tokens placed inside the reasoning trace decode to masks for the regions the trace discusses, such as each instance being counted. Grounded reasoning traces supervise these intermediate regions. Mask decoding is an output branch, so no crops or region features are fed back to the language model.
 
 <p align="center"><img src="docs/assets/figures/architecture.png" width="100%" alt="Xiaomi-Lens-0 architecture"></p>
 
@@ -66,7 +68,7 @@ All scores are percentages; higher is better. **Bold** marks the best score and 
 
 <p align="center"><img src="docs/assets/figures/radar_comparison.png" width="100%" alt="Radar comparison"></p>
 
-### 1. Referring Expression Comprehension (Pres@0.5)
+### 1. Referring Expression Comprehension (Prec@0.5)
 
 | Method | RefCOCO<br>Val | RefCOCO<br>TestA | RefCOCO<br>TestB | RefCOCO+<br>Val | RefCOCO+<br>TestA | RefCOCO+<br>TestB | RefCOCOg<br>Val | RefCOCOg<br>Test |
 |:--|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -110,24 +112,23 @@ Recall, precision, and F1 at IoU 0.50 and 0.95; the mIoU group averages each met
 
 | Method | IoU 0.50<br>Recall | IoU 0.50<br>Precision | IoU 0.50<br>F1 | IoU 0.95<br>Recall | IoU 0.95<br>Precision | IoU 0.95<br>F1 | mIoU<br>Recall | mIoU<br>Precision | mIoU<br>F1 |
 |:--|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| GroundingDINO | <u>79.6</u> | **83.2** | **81.4** | 24.7 | 28.1 | 26.3 | <u>61.1</u> | 63.7 | **60.6** |
+| GroundingDINO | <u>79.6</u> | **83.2** | **81.4** | 24.7 | 28.1 | 26.3 | 61.1 | 63.7 | 60.6 |
 | Rex-Omni | 69.9 | 81.0 | 75.0 | 17.9 | 21.7 | 19.7 | 53.9 | 59.4 | 56.3 |
 | LocateAnything Fast | 66.2 | 73.3 | 69.6 | 24.7 | 26.9 | 25.8 | 50.9 | 59.3 | 53.1 |
 | LocateAnything Hybrid | 74.7 | 80.8 | 77.6 | <u>26.6</u> | <u>28.7</u> | <u>27.6</u> | 52.4 | **65.2** | 59.1 |
-| LocateAnything Slow NTP | 75.0 | <u>81.9</u> | 78.3 | 25.0 | 27.2 | 26.0 | 54.7 | <u>65.1</u> | <u>59.4</u> |
+| LocateAnything Slow NTP | 75.0 | <u>81.9</u> | 78.3 | 25.0 | 27.2 | 26.0 | 54.7 | <u>65.1</u> | 59.4 |
 | Qwen2.5-VL<sub>7B</sub> | 57.2 | 62.9 | 59.9 | 12.2 | 13.2 | 12.7 | 44.7 | 49.1 | 46.3 |
 | Qwen3-VL<sub>2B</sub> | 63.5 | 67.1 | 65.3 | 21.8 | 22.6 | 22.2 | 42.6 | 44.9 | 42.5 |
 | Qwen3-VL<sub>4B</sub> | 66.1 | 70.6 | 68.3 | 23.7 | 24.9 | 24.3 | 44.9 | 47.8 | 46.5 |
 | Qwen3-VL<sub>8B</sub> | 65.7 | 69.5 | 67.5 | 23.9 | 25.1 | 24.5 | 44.8 | 47.3 | 46.3 |
-| Qwen3.5<sub>4B</sub> | 65.9 | 67.8 | 66.8 | 22.9 | 23.7 | 23.3 | 48.4 | 45.7 | 47.6 |
-| Qwen3.5<sub>9B</sub> | 73.2 | 68.1 | 70.6 | 23.8 | 24.5 | 24.2 | 58.5 | 46.3 | 52.0 |
 | RynnBrain1.1 | 36.5 | 60.5 | 45.5 | 11.6 | 16.5 | 13.6 | 28.7 | 45.3 | 35.2 |
-| SenseNova-Vision | 79.1 | 80.5 | 79.8 | **27.2** | **30.2** | **28.6** | **63.1** | 55.4 | 57.5 |
+| SenseNova-Vision | 79.1 | 80.5 | 79.8 | **27.2** | **30.2** | **28.6** | 63.1 | 55.4 | 57.5 |
+| GroundingPI | **81.4** | 80.9 | <u>81.2</u> | 22.9 | 22.8 | 22.8 | <u>63.2</u> | 62.8 | <u>63.0</u> |
 | MiMo-VL-SFT<sub>7B</sub> | 65.5 | 72.2 | 68.7 | 10.0 | 11.1 | 10.5 | 45.7 | 50.5 | 48.0 |
 | MiMo-VL-RL<sub>7B</sub> | 65.6 | 74.5 | 69.8 | 9.2 | 10.3 | 9.7 | 44.5 | 50.2 | 47.2 |
 | BAGEL | 65.6 | 75.2 | 70.1 | 11.0 | 13.0 | 11.9 | 46.3 | 47.2 | 46.0 |
 | RynnBrain | 21.3 | 49.9 | 29.8 | 4.9 | 10.9 | 6.7 | 15.5 | 35.4 | 21.5 |
-| **Xiaomi-Lens-0<sub>4B</sub>** | 77.5 | 79.3 | 78.4 | 23.3 | 23.7 | 23.5 | 60.0 | 61.2 | **60.6** |
+| **Xiaomi-Lens-0<sub>4B</sub>** | <u>79.6</u> | 81.1 | 80.4 | **27.2** | 27.7 | 27.4 | **63.4** | 64.5 | **63.9** |
 
 ### 4. Reasoning Segmentation (ReasonSeg, gIoU / cIoU)
 
@@ -168,6 +169,56 @@ Recall, precision, and F1 at IoU 0.50 and 0.95; the mIoU group averages each met
 | **Xiaomi-Lens-0<sub>4B</sub>** | **69.7** | **67.5** | **88.1** | **87.4** | **82.5** | **80.6** | **50.6** | **84.4** |
 
 Box-grounding F1 on the RefCOCO family is on the [project page](https://seerray-lab.github.io/Xiaomi-Lens-0/#results).
+
+### 7. LensBench
+
+LensBench contains 1,200 human-reviewed paired units and 4,800 instructions across general, aerial, driving, and panoramic imagery (300 units per domain). Each unit combines single/multiple targets with explicit/implicit wording. The two wordings share the same target mask; multiple targets use the union mask and its enclosing box. Targets and masks are fixed before instruction synthesis, followed by automated consistency checks and human review of each complete unit.
+
+Xiaomi-Lens-0 leads mask cIoU in aerial (57.1), driving (68.6), and panoramic (62.3) imagery, and leads both metrics on explicit instructions. Implicit instructions remain challenging: cIoU drops from 71.4 to 54.7, while box Prec@0.5 drops from 85.0 to 70.0. The gap is largest for multiple targets in panoramic scenes, where cIoU falls from 71.8 to 48.9 and box Prec@0.5 from 81.3 to 48.7.
+
+Marginal results pool single and multiple targets. Each cell reports mask cIoU / box Prec@0.5 (%, higher is better).
+
+| Method | Explicit | Implicit | General | Aerial | Driving | Panoramic |
+|:--| :-: | :-: | :-: | :-: | :-: | :-: |
+| GPT-5.6-Sol | 63.8 / 73.2 | <u>61.2</u> / <u>70.0</u> | <u>68.4</u> / 67.9 | 42.2 / 58.5 | <u>68.4</u> / **81.8** | 57.1 / <u>78.3</u> |
+| Gemini-3.6-Flash | 61.4 / <u>74.5</u> | 61.0 / **70.3** | 63.6 / 65.8 | <u>50.1</u> / <u>62.5</u> | 66.8 / <u>81.0</u> | <u>60.8</u> / **80.3** |
+| MiMo-V2.5 | 51.4 / 52.2 | 47.4 / 46.8 | 54.2 / 45.2 | 32.6 / 38.6 | 50.5 / 52.8 | 45.4 / 61.4 |
+| Seed-2.1-Pro | 62.1 / 70.2 | 55.9 / 64.5 | 60.6 / 56.7 | <u>50.1</u> / 58.5 | 66.8 / 77.4 | 59.9 / 76.7 |
+| Qwen3.8-Max | <u>67.6</u> / 69.2 | **64.5** / 63.8 | **74.2** / **79.7** | 33.5 / <u>62.5</u> | 58.0 / 57.7 | <u>60.8</u> / 66.2 |
+| Kimi-K3 | 29.4 / 39.1 | 28.3 / 33.0 | 38.5 / 26.1 | 13.8 / 44.9 | 47.2 / 31.1 | 13.4 / 42.1 |
+| GLM-5.3-Flash | 44.3 / 37.5 | 43.5 / 33.3 | 48.9 / 26.3 | 28.0 / 33.4 | 51.6 / 47.5 | 30.6 / 34.4 |
+| DeepSeek-V4-Flash-Vision-Exp | 41.8 / 30.7 | 41.1 / 27.3 | 46.1 / 28.1 | 25.9 / 28.9 | 43.9 / 27.9 | 32.8 / 31.0 |
+| SAM 3 | 17.3 / 38.1 | 15.4 / 19.5 | 23.8 / 24.8 | 4.3 / 27.3 | 27.7 / 35.1 | 11.1 / 27.9 |
+| **Xiaomi-Lens-0<sub>4B</sub>** | **71.4** / **85.0** | 54.7 / <u>70.0</u> | 63.9 / <u>79.1</u> | **57.1** / **79.6** | **68.6** / 79.4 | **62.3** / 72.1 |
+
+<p align="center"><img src="docs/assets/figures/lensbench_data_pipeline.png" width="100%" alt="LensBench design and construction pipeline"></p>
+
+<details>
+<summary>LensBench qualitative comparisons</summary>
+
+<p align="center"><a href="docs/assets/figures/lensbench_evaluation.png"><img src="docs/assets/figures/lensbench_evaluation.png" width="100%" alt="LensBench predictions across four domains, compared with ground-truth masks"></a></p>
+
+</details>
+
+### 8. Ablations
+
+We ablate mask supervision and grounded reasoning data, with the original backbone as a reference. Scores are validation-set Prec@0.5 for REC, cIoU for RES, and answer accuracy for perception.
+
+**Mask supervision.** BBox-only disables the mask loss. Adding it raises all six scores; the REC gain is largest on RefCOCO+ (+2.4), where location words are excluded and appearance must separate the target from its neighbors.
+
+| Variant | REC<br>RefCOCO | REC<br>RefCOCO+ | REC<br>RefCOCOg | MME-RW-en | MME-RW-cn | CV-B |
+|:--|:-:|:-:|:-:|:-:|:-:|:-:|
+| Qwen3.5<sub>4B</sub> | 90.4 | 84.8 | 88.0 | 66.5 | 60.3 | 85.4 |
+| BBox-only | 93.5 | 89.7 | 90.2 | 68.8 | 66.1 | 87.9 |
+| **BBox + Mask** | **94.6** | **92.1** | **92.5** | **69.7** | **67.5** | **88.1** |
+
+**Grounded reasoning traces.** Grounding-only omits the reasoning data. Grounding data drive most of the referring gain, and supervising intermediate regions adds 0.5–0.8 cIoU on every RES split.
+
+| Variant | REC<br>RefCOCO | REC<br>RefCOCO+ | REC<br>RefCOCOg | RES<br>RefCOCO | RES<br>RefCOCO+ | RES<br>RefCOCOg |
+|:--|:-:|:-:|:-:|:-:|:-:|:-:|
+| Qwen3.5<sub>4B</sub> | 90.4 | 84.8 | 88.0 | — | — | — |
+| Grounding-only | 94.5 | 91.5 | 92.0 | 82.7 | 79.1 | 80.6 |
+| **+ Reasoning** | **94.6** | **92.1** | **92.5** | **83.4** | **79.9** | **81.1** |
 
 ## 🚀 Quick Start
 
@@ -258,7 +309,7 @@ The client sends the image path to the mask server, so it must run on the same m
 
 ### LensBench
 
-The planned LensBench release is on [Hugging Face Datasets](https://huggingface.co/datasets/SeerRay-Lab/LensBench). Download it with:
+LensBench is available on [Hugging Face Datasets](https://huggingface.co/datasets/SeerRay-Lab/LensBench). Download it with:
 
 ```bash
 hf download SeerRay-Lab/LensBench --repo-type dataset --local-dir LensBench
