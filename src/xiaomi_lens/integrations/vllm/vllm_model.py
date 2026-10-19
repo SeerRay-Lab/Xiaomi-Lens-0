@@ -30,10 +30,9 @@
 Text generation and mask pooling run in separate vLLM processes. The pooling
 request replays the image, instruction, and generated completion.
 
-Weights: the checkpoint nests the base model an extra level
-(`model.language_model.language_model.language_model.*`, `model.language_model.visual.*`)
-and carries `mask_decoder.*`; `load_weights` remaps to vLLM's layout and routes
-mask_decoder.* to the head, so no offline shard rewrite is needed.
+Weights: the checkpoint uses the base Qwen3.5 layout (`model.language_model.*`,
+`model.visual.*`) plus `mask_decoder.*`; `load_weights` passes the backbone to
+vLLM's loader and routes mask_decoder.* to the head.
 """
 
 from __future__ import annotations
@@ -48,20 +47,6 @@ from vllm.model_executor.layers.pooler.abstract import Pooler
 from vllm.model_executor.layers.pooler.common import PoolingParamsUpdate
 from vllm.model_executor.models.qwen3_5 import Qwen3_5ForConditionalGeneration
 from vllm.tasks import PoolingTask
-
-# Nested-name remap: Xiaomi-Lens-0 checkpoint -> base Qwen3.5-VL layout. Same rules as
-# prepare_served.RENAMES (kept in sync). Longest prefix first.
-_RENAMES = (
-    ("model.language_model.language_model.language_model.", "model.language_model."),
-    ("model.language_model.visual.", "model.visual."),
-)
-
-
-def _remap_base_key(name: str) -> str:
-    for old, new in _RENAMES:
-        if name.startswith(old):
-            return new + name[len(old):]
-    return name
 
 
 class XiaomiLensMaskPooler(Pooler):
@@ -158,7 +143,7 @@ class XiaomiLensForVLLM(Qwen3_5ForConditionalGeneration):
             if name.startswith("mask_decoder."):
                 mask_sd[name[len("mask_decoder."):]] = w
             else:
-                base_weights.append((_remap_base_key(name), w))
+                base_weights.append((name, w))
 
         loaded = super().load_weights(base_weights)
         if mask_sd:

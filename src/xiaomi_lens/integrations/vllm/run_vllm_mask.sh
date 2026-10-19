@@ -21,8 +21,8 @@
 # prepare_served.py --tokenizer-only materializes a pure-symlink served view that
 # only fixes the transformers-5.4 tokenizer_config; the arch name
 # (XiaomiLensQwen3_5ForConditionalGeneration, which the plugin registers) and ALL
-# weights — including mask_decoder.* — are preserved. load_weights does the
-# base-name remap + loads the mask head. No offline shard rewrite, no arch override.
+# weights — including mask_decoder.* — are preserved. load_weights loads the
+# mask head. No offline shard rewrite, no arch override.
 #
 # Disable chunked prefill and prefix caching. The pooler needs the <|mask|>
 # token's hidden state, but chunking may place that token in another pooler call.

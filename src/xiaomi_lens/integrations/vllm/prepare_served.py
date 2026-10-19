@@ -15,13 +15,13 @@
 """Prepare checkpoint views for Xiaomi-Lens-0's vLLM launchers.
 
 The default mode prepares indexed safetensors shards for the text server:
-remap nested backbone keys to vLLM's Qwen3.5 layout, remove `mask_decoder.*`,
-and omit `lm_head.weight` when embeddings are tied. The mask decoder runs in
-the separate pooling server or the optional HF mask service.
+remove `mask_decoder.*` and omit `lm_head.weight` when embeddings are tied.
+The mask decoder runs in the separate pooling server or the optional HF mask
+service.
 
 For pooling, `--tokenizer-only` symlinks all weights and preserves the model's
-architecture. `XiaomiLensForVLLM.load_weights` remaps backbone names and loads
-the mask decoder inside vLLM.
+architecture. `XiaomiLensForVLLM.load_weights` loads the mask decoder inside
+vLLM.
 
 Both modes write a tokenizer configuration using `Qwen2Tokenizer`, removing
 `extra_special_tokens` and `backend` entries for compatibility with the serving
@@ -46,31 +46,20 @@ import json
 import os
 from pathlib import Path
 
-# Longest prefix first so the text rule (3x language_model) wins over any shorter
-# accidental match. Applied to the FIRST matching prefix only.
-RENAMES: tuple[tuple[str, str], ...] = (
-    ("model.language_model.language_model.language_model.", "model.language_model."),
-    ("model.language_model.visual.", "model.visual."),
-)
 DROP_PREFIXES = ("mask_decoder.",)      # Omit mask weights from the text-server view.
 
 
-def remap_key(key: str, *, drop_lm_head: bool) -> str | None:
-    """Xiaomi-Lens-0 tensor name -> vLLM Qwen3.5-VL name, or None to drop it.
+def keep_key(key: str, *, drop_lm_head: bool) -> bool:
+    """Whether a Xiaomi-Lens-0 tensor belongs in the text-server view.
 
     `drop_lm_head` MUST reflect the checkpoint's `tie_word_embeddings`: on a tied
     model (4B) `lm_head.weight` is a redundant copy of the embedding and vLLM
     re-ties it, so we drop it; on an untied model (9B) it is an independently
-    trained tensor that vLLM's output head needs, so we keep and rename it.
+    trained tensor that vLLM's output head needs, so we keep it.
     """
     if any(key.startswith(p) for p in DROP_PREFIXES):
-        return None
-    if key == "lm_head.weight" and drop_lm_head:
-        return None
-    for old, new in RENAMES:
-        if key.startswith(old):
-            return new + key[len(old):]
-    return key
+        return False
+    return not (key == "lm_head.weight" and drop_lm_head)
 
 
 def _corrected_tokenizer_config(src: Path) -> dict:
@@ -89,11 +78,10 @@ def _rewrite_shard(src: Path, dst: Path, *, drop_lm_head: bool) -> tuple[int, in
     with safe_open(str(src), framework="pt") as f:
         meta = f.metadata()
         for key in f.keys():
-            new = remap_key(key, drop_lm_head=drop_lm_head)
-            if new is None:
+            if not keep_key(key, drop_lm_head=drop_lm_head):
                 dropped += 1
                 continue
-            kept[new] = f.get_tensor(key)
+            kept[key] = f.get_tensor(key)
     save_file(kept, str(dst), metadata=meta)
     return len(kept), dropped
 
@@ -110,12 +98,11 @@ def prepare(checkpoint: Path, out: Path, *, tokenizer_only: bool = False) -> Pat
     """Materialize a vLLM-servable view of `checkpoint` under `out`.
 
     Two modes:
-    - Default (text server): rewrite indexed weight shards with backbone keys
-      remapped to the base Qwen3.5 layout, dropping mask weights and a tied LM head.
-      The launcher supplies the base architecture override.
+    - Default (text server): rewrite indexed weight shards without mask weights
+      or a tied LM head. The launcher supplies the base architecture override.
     - `tokenizer_only` (pooling server): symlink weights, index, and model config;
-      rewrite only `tokenizer_config.json`. The custom vLLM model handles weight
-      remapping and mask decoding.
+      rewrite only `tokenizer_config.json`. The custom vLLM model loads the mask
+      decoder and handles mask decoding.
     """
     checkpoint = checkpoint.resolve()  # so symlink targets are absolute, not relative to `out`
     out.mkdir(parents=True, exist_ok=True)
@@ -137,11 +124,10 @@ def prepare(checkpoint: Path, out: Path, *, tokenizer_only: bool = False) -> Pat
         if name == "tokenizer_config.json":
             dst.write_text(json.dumps(_corrected_tokenizer_config(entry)))
         elif name == index_name and shard_files:
-            new_map = {}
-            for key, shard in weight_map.items():
-                nk = remap_key(key, drop_lm_head=drop_lm_head)
-                if nk is not None:
-                    new_map[nk] = shard
+            new_map = {
+                key: shard for key, shard in weight_map.items()
+                if keep_key(key, drop_lm_head=drop_lm_head)
+            }
             dst.write_text(json.dumps({"weight_map": new_map}))
         elif name in shard_files:
             kept, dropped = _rewrite_shard(entry, dst, drop_lm_head=drop_lm_head)
@@ -151,7 +137,7 @@ def prepare(checkpoint: Path, out: Path, *, tokenizer_only: bool = False) -> Pat
 
     if tokenizer_only:
         print(f"[prepare_served] {out}  (tokenizer-only: all weights symlinked, "
-              f"mask_decoder kept; custom vLLM model remaps + loads them)")
+              f"mask_decoder kept; custom vLLM model loads them)")
     else:
         print(f"[prepare_served] {out}  (tie_word_embeddings={drop_lm_head}, "
               f"lm_head {'dropped' if drop_lm_head else 'kept'})")
@@ -165,7 +151,7 @@ def main() -> int:
     ap.add_argument("--tokenizer-only", action="store_true",
                     help="Unified pooling path: symlink all weights (keep arch + "
                          "mask_decoder), fix only tokenizer_config.json. The custom "
-                         "vLLM model does the weight remap + mask_decoder load.")
+                         "vLLM model does the mask_decoder load.")
     args = ap.parse_args()
     prepare(args.checkpoint, args.out, tokenizer_only=args.tokenizer_only)
     return 0
