@@ -15,6 +15,7 @@ dependencies = []
 
 [project.optional-dependencies]
 vllm = ["vllm>=0.19.1", "pycocotools", "safetensors"]
+eval = ["pyarrow", "pycocotools", "huggingface_hub"]
 
 [tool.setuptools]
 py-modules = ["infer"]

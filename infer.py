@@ -119,6 +119,7 @@ def parse_answer_bboxes(generated_text: str) -> list[list[int]]:
 def load_model_and_processor(
     checkpoint: Path,
     device: torch.device,
+    attn_implementation: str = "flash_attention_2",
 ) -> tuple[XiaomiLensQwen3_5ForConditionalGeneration, AutoProcessor, int]:
     """Load the checkpoint and processor, and resolve the ``<|mask|>`` token ID."""
     from xiaomi_lens.model.modeling_xiaomi_lens import XiaomiLensQwen3_5ForConditionalGeneration
@@ -127,7 +128,7 @@ def load_model_and_processor(
     model = XiaomiLensQwen3_5ForConditionalGeneration.from_pretrained(
         str(checkpoint),
         torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
+        attn_implementation=attn_implementation,
         device_map=str(device),
     )
     model.eval()

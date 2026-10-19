@@ -297,6 +297,26 @@ LensBench is available on [Hugging Face Datasets](https://huggingface.co/dataset
 hf download SeerRay-Lab/LensBench --repo-type dataset --local-dir LensBench
 ```
 
+Evaluate with `eval/run.py`. By default it loads `SeerRay-Lab/Xiaomi-Lens-0` and `SeerRay-Lab/LensBench` from Hugging Face; `--model-path` and `--dataset-path` also accept a local checkpoint directory and a local `test.parquet` (or its directory).
+
+```bash
+pip install -e ".[eval]"
+
+# Single GPU
+python eval/run.py --output-dir outputs/lensbench
+
+# One shard per GPU, merged at the end
+python eval/run.py --devices cuda:0 cuda:1 cuda:2 cuda:3 --output-dir outputs/lensbench
+
+# Local copies
+python eval/run.py --model-path /path/to/Xiaomi-Lens-0 --dataset-path LensBench --output-dir outputs/lensbench
+
+# vLLM backend (text and mask engines on two GPUs; requires ".[vllm]")
+python eval/run.py --backend vllm --vllm-text-device cuda:0 --vllm-mask-device cuda:1 --output-dir outputs/lensbench_vllm
+```
+
+Results are written to `metrics.json` (Prec@0.5, cIoU and gIoU, overall and per domain, explicitness and cardinality) and per-sample predictions to `predictions.jsonl`. Add `--resume` to continue an interrupted run and `--limit N` for a quick check.
+
 ## 📝 Citation
 
 If you find Xiaomi-Lens-0 useful, please cite:

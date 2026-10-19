@@ -297,6 +297,26 @@ LensBench 已发布于 [Hugging Face Datasets](https://huggingface.co/datasets/S
 hf download SeerRay-Lab/LensBench --repo-type dataset --local-dir LensBench
 ```
 
+使用 `eval/run.py` 进行评测。默认从 Hugging Face 加载 `SeerRay-Lab/Xiaomi-Lens-0` 和 `SeerRay-Lab/LensBench`；`--model-path` 与 `--dataset-path` 也可以传入本地权重目录和本地 `test.parquet`（或其所在目录）。
+
+```bash
+pip install -e ".[eval]"
+
+# 单卡
+python eval/run.py --output-dir outputs/lensbench
+
+# 每张卡一个分片，结束后自动合并
+python eval/run.py --devices cuda:0 cuda:1 cuda:2 cuda:3 --output-dir outputs/lensbench
+
+# 使用本地文件
+python eval/run.py --model-path /path/to/Xiaomi-Lens-0 --dataset-path LensBench --output-dir outputs/lensbench
+
+# vLLM 后端（文本与 mask 引擎分别占用一张卡；需安装 ".[vllm]"）
+python eval/run.py --backend vllm --vllm-text-device cuda:0 --vllm-mask-device cuda:1 --output-dir outputs/lensbench_vllm
+```
+
+结果写入 `metrics.json`（整体及按 domain、explicitness、cardinality 分组的 Prec@0.5、cIoU、gIoU），逐样本预测写入 `predictions.jsonl`。加 `--resume` 可继续中断的评测，加 `--limit N` 可快速检查。
+
 ## 📝 引用
 
 如果 Xiaomi-Lens-0 对你的工作有所帮助，请引用：
