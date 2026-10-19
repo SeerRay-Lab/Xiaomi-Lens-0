@@ -25,6 +25,7 @@ Xiaomi-Lens-0 是一个 4B 多模态大语言模型，通过像素级监督学�
 
 ## 📰 最新动态
 
+- [Xiaomi-Lens-0](https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0) 模型权重与 [LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench) 评测基准数据集现已在 Hugging Face 开源。
 - [Xiaomi-Lens-0 技术报告](https://arxiv.org/abs/2610.23279)现已在 arXiv 公开。
 
 ## ✨ 核心能力

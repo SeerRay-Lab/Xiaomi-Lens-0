@@ -25,6 +25,7 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 
 ## 📰 News
 
+- The [Xiaomi-Lens-0](https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0) model weights and the [LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench) benchmark dataset are now publicly available on Hugging Face.
 - The [Xiaomi-Lens-0 Technical Report](https://arxiv.org/abs/2610.23279) is now publicly available on arXiv.
 
 ## ✨ What it does
