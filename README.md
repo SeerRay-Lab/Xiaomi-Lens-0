@@ -25,6 +25,8 @@ Xiaomi-Lens-0 is a 4B multimodal large language model that learns from pixel-lev
 
 ## 📰 News
 
+- The [Xiaomi-Lens-0 Technical Report](https://arxiv.org/abs/2610.23279) is now publicly available on arXiv.
+
 ## ✨ What it does
 
 1. **Referring Expression Comprehension**: finds the object a phrase describes and returns its bounding box. First on seven of eight RefCOCO, RefCOCO+, and RefCOCOg splits, 5.6 points above its Qwen3.5-4B backbone on average.
