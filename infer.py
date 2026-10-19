@@ -133,15 +133,6 @@ def load_model_and_processor(
     model.eval()
 
     processor = AutoProcessor.from_pretrained(str(checkpoint))
-    processor.tokenizer.add_special_tokens(
-        {"additional_special_tokens": [MASK_TOKEN]}
-    )
-    model.resize_token_embeddings(len(processor.tokenizer))
-
-    new_vocab_size = len(processor.tokenizer)
-    if hasattr(model.config, "text_config") and model.config.text_config.vocab_size != new_vocab_size:
-        model.config.text_config.vocab_size = new_vocab_size
-
     mask_token_id = processor.tokenizer.convert_tokens_to_ids(MASK_TOKEN)
     print(f"<|mask|> token id: {mask_token_id}")
     return model, processor, mask_token_id
