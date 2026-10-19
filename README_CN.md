@@ -3,6 +3,7 @@
 <p><b>在紧凑的 4B 多模态模型中实现像素级定位与视觉推理。</b></p>
 <p>
   <a href="https://seerray-lab.github.io/Xiaomi-Lens-0/"><img src="https://img.shields.io/badge/Project-Page-FF6900" alt="项目主页"></a>
+  <a href="https://arxiv.org/abs/2610.23279"><img src="https://img.shields.io/badge/arXiv-2610.23279-b31b1b" alt="arXiv"></a>
   <a href="https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0"><img src="https://img.shields.io/badge/Hugging%20Face-Model-FFD21E?logo=huggingface&amp;logoColor=FFD21E" alt="Hugging Face 模型"></a>
   <a href="https://github.com/SeerRay-Lab/Xiaomi-Lens-0"><img src="https://img.shields.io/badge/GitHub-SeerRay--Lab%2FXiaomi--Lens--0-181717?logo=github" alt="GitHub"></a>
   <a href="https://huggingface.co/datasets/SeerRay-Lab/LensBench"><img src="https://img.shields.io/badge/LensBench-Dataset-e3ad25?logo=huggingface&amp;logoColor=white" alt="LensBench 数据集"></a>
@@ -299,10 +300,16 @@ hf download SeerRay-Lab/LensBench --repo-type dataset --local-dir LensBench
 
 ```bibtex
 @misc{xiaomilens0,
-  title  = {Xiaomi-Lens-0 Technical Report},
-  author = {SeerRay Team},
-  year   = {2026},
-  url    = {https://seerray-lab.github.io/Xiaomi-Lens-0/}
+  title         = {Xiaomi-Lens-0 Technical Report},
+  author        = {Pei Fu and Yike Liu and Yue Sun and Hanmo Wang and
+                   Xiuwen Xi and Ruoceng Zhang and Shaojie Zhang and
+                   Chao Jiang and Hang Li and Bingrui Liu and Zhenbo Luo and
+                   Heng Qu and Changjian Xu and Ming Xu and Jian Luan},
+  year          = {2026},
+  eprint        = {2610.23279},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  url           = {https://arxiv.org/abs/2610.23279}
 }
 ```
 
