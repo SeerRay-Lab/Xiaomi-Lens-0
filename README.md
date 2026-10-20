@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/d7ed080d-f815-4eb5-80b0-85273974f687
 
 ## 📰 News
 
+- The [Xiaomi-Lens-0 online demo](https://huggingface.co/spaces/hugging-apps/xiaomi-lens-0) is now live on Hugging Face Spaces.
 - The [Xiaomi-Lens-0](https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0) model weights and the [LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench) benchmark dataset are now publicly available on Hugging Face.
 - The [Xiaomi-Lens-0 Technical Report](https://arxiv.org/abs/2610.23279) is now publicly available on arXiv.
 

@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/d7ed080d-f815-4eb5-80b0-85273974f687
 
 ## 📰 最新动态
 
+- [Xiaomi-Lens-0 在线 Demo](https://huggingface.co/spaces/hugging-apps/xiaomi-lens-0) 现已在 Hugging Face Spaces 上线。
 - [Xiaomi-Lens-0](https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0) 模型权重与 [LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench) 评测基准数据集现已在 Hugging Face 开源。
 - [Xiaomi-Lens-0 技术报告](https://arxiv.org/abs/2610.23279)现已在 arXiv 公开。
 
