@@ -91,7 +91,7 @@ def _flash_warn_once(key: str, message: str) -> None:
         return
     _FLASH_WARNED.add(key)
     logger.warning(
-        "PatchSelfAttention flash path disabled (%s); falling back to MHA",
+        "PatchSelfAttention flash path disabled (%s); falling back to SDPA",
         message,
     )
 
@@ -184,14 +184,19 @@ class PatchSelfAttention(nn.Module):
         normed: torch.Tensor,
         key_padding_mask: torch.Tensor | None,
     ) -> torch.Tensor:
-        """Select the configured attention kernel, falling back to MHA when flash is unavailable."""
-        if _DECODER_ATTN == "sdpa":
-            return self._sdpa_self_attention(normed, key_padding_mask)
+        """Select the configured attention kernel, falling back to SDPA when flash is unavailable.
+
+        MultiheadAttention with a key padding mask materializes the (P, P) attention
+        weights of every head, which does not fit in memory for large images; SDPA
+        does not.
+        """
+        if _DECODER_ATTN == "mha":
+            return self._mha_self_attention(normed, key_padding_mask)
         if _DECODER_ATTN == "flash":
             output = self._flash_self_attention(normed, key_padding_mask)
             if output is not None:
                 return output
-        return self._mha_self_attention(normed, key_padding_mask)
+        return self._sdpa_self_attention(normed, key_padding_mask)
 
     def _mha_self_attention(
         self,
