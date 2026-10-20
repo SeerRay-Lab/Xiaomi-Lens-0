@@ -326,7 +326,7 @@ python eval/run.py --backend vllm --vllm-text-device cuda:0 --vllm-mask-device c
 @misc{xiaomilens0,
   title         = {Xiaomi-Lens-0 Technical Report},
   author        = {Pei Fu and Yike Liu and Yue Sun and Hanmo Wang and
-                   Xiuwen Xi and Ruoceng Zhang and Shaojie Zhang and
+                   Xiuwen Xi and Ruoceng Zhang and Shaojie Zhang and Tingwei Huang and
                    Chao Jiang and Hang Li and Bingrui Liu and Zhenbo Luo and
                    Heng Qu and Changjian Xu and Ming Xu and Jian Luan},
   year          = {2026},
