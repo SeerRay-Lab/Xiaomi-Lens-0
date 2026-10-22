@@ -1,5 +1,7 @@
 # Training data format
 
+English | [简体中文](README_CN.md)
+
 `train.py` reads JSONL files listed in a YAML manifest. Each line is one sample.
 
 ## Manifest
