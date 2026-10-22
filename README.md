@@ -177,22 +177,23 @@ Box-grounding F1 on the RefCOCO family is on the [project page](https://seerray-
 
 LensBench contains 1,200 human-reviewed paired units and 4,800 instructions across general, aerial, driving, and panoramic imagery (300 units per domain). Each unit combines single/multiple targets with explicit/implicit wording. The two wordings share the same target mask; multiple targets use the union mask and its enclosing box. Targets and masks are fixed before instruction synthesis, followed by automated consistency checks and human review of each complete unit.
 
-Xiaomi-Lens-0 leads mask cIoU in aerial (57.1), driving (68.6), and panoramic (62.3) imagery, and leads both metrics on explicit instructions. Implicit instructions remain challenging: cIoU drops from 71.4 to 54.7, while Prec@0.5 drops from 85.0 to 70.0. The gap is largest for multiple targets in panoramic scenes, where cIoU falls from 71.8 to 48.9 and Prec@0.5 from 81.3 to 48.7.
+GPT-6-Astra leads cIoU on explicit and implicit instructions and in aerial, driving, and panoramic imagery. Qwen3.8-Max leads cIoU in general imagery (74.2). Xiaomi-Lens-0 ranks second on both explicit-instruction metrics and on cIoU in aerial, driving, and panoramic imagery, and leads aerial Prec@0.5 (79.6). Implicit instructions remain challenging: cIoU drops from 71.4 to 54.7, while Prec@0.5 drops from 85.0 to 70.0. The gap is largest for multiple targets in panoramic scenes, where cIoU falls from 71.8 to 48.9 and Prec@0.5 from 81.3 to 48.7.
 
 Marginal results pool single and multiple targets. Each cell reports cIoU / Prec@0.5 (%, higher is better).
 
 | Method | Explicit | Implicit | General | Aerial | Driving | Panoramic |
 |:--| :-: | :-: | :-: | :-: | :-: | :-: |
-| GPT-5.6-Sol | 63.8 / 73.2 | <u>61.2</u> / <u>70.0</u> | <u>68.4</u> / 67.9 | 42.2 / 58.5 | <u>68.4</u> / **81.8** | 57.1 / <u>78.3</u> |
-| Gemini-3.6-Flash | 61.4 / <u>74.5</u> | 61.0 / **70.3** | 63.6 / 65.8 | <u>50.1</u> / <u>62.5</u> | 66.8 / <u>81.0</u> | <u>60.8</u> / **80.3** |
+| GPT-6-Astra | **72.6** / **86.3** | **71.0** / **84.0** | <u>74.1</u> / **86.2** | **61.7** / <u>76.9</u> | **77.6** / **89.0** | **68.9** / **88.3** |
+| GPT-5.6-Sol | 63.8 / 73.2 | 61.2 / 70.0 | 68.4 / 67.9 | 42.2 / 58.5 | 68.4 / <u>81.8</u> | 57.1 / 78.3 |
+| Gemini-3.6-Flash | 61.4 / 74.5 | 61.0 / <u>70.3</u> | 63.6 / 65.8 | 50.1 / 62.5 | 66.8 / 81.0 | 60.8 / <u>80.3</u> |
 | MiMo-V2.5 | 51.4 / 52.2 | 47.4 / 46.8 | 54.2 / 45.2 | 32.6 / 38.6 | 50.5 / 52.8 | 45.4 / 61.4 |
-| Seed-2.1-Pro | 62.1 / 70.2 | 55.9 / 64.5 | 60.6 / 56.7 | <u>50.1</u> / 58.5 | 66.8 / 77.4 | 59.9 / 76.7 |
-| Qwen3.8-Max | <u>67.6</u> / 69.2 | **64.5** / 63.8 | **74.2** / **79.7** | 33.5 / <u>62.5</u> | 58.0 / 57.7 | <u>60.8</u> / 66.2 |
+| Seed-2.1-Pro | 62.1 / 70.2 | 55.9 / 64.5 | 60.6 / 56.7 | 50.1 / 58.5 | 66.8 / 77.4 | 59.9 / 76.7 |
+| Qwen3.8-Max | 67.6 / 69.2 | <u>64.5</u> / 63.8 | **74.2** / <u>79.7</u> | 33.5 / 62.5 | 58.0 / 57.7 | 60.8 / 66.2 |
 | Kimi-K3 | 29.4 / 39.1 | 28.3 / 33.0 | 38.5 / 26.1 | 13.8 / 44.9 | 47.2 / 31.1 | 13.4 / 42.1 |
 | GLM-5.3-Flash | 44.3 / 37.5 | 43.5 / 33.3 | 48.9 / 26.3 | 28.0 / 33.4 | 51.6 / 47.5 | 30.6 / 34.4 |
 | DeepSeek-V4-Flash-Vision-Exp | 41.8 / 30.7 | 41.1 / 27.3 | 46.1 / 28.1 | 25.9 / 28.9 | 43.9 / 27.9 | 32.8 / 31.0 |
 | SAM 3 | 17.3 / 38.1 | 15.4 / 19.5 | 23.8 / 24.8 | 4.3 / 27.3 | 27.7 / 35.1 | 11.1 / 27.9 |
-| **Xiaomi-Lens-0<sub>4B</sub>** | **71.4** / **85.0** | 54.7 / <u>70.0</u> | 63.9 / <u>79.1</u> | **57.1** / **79.6** | **68.6** / 79.4 | **62.3** / 72.1 |
+| **Xiaomi-Lens-0<sub>4B</sub>** | <u>71.4</u> / <u>85.0</u> | 54.7 / 70.0 | 63.9 / 79.1 | <u>57.1</u> / **79.6** | <u>68.6</u> / 79.4 | <u>62.3</u> / 72.1 |
 
 <p align="center"><img src="docs/assets/figures/lensbench_data_pipeline.png" width="100%" alt="LensBench design and construction pipeline"></p>
 
