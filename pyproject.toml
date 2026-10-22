@@ -9,13 +9,20 @@ description = "Xiaomi-Lens-0: a Qwen3.5 VLM with a <|mask|> token decoded to ful
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
-# Hugging Face inference and vLLM serving may need different transformers pins,
-# so runtime deps are listed in requirements.txt rather than enforced here.
+# Hugging Face inference, training, and vLLM serving may need different
+# transformers pins, so runtime deps are listed in requirements.txt rather than
+# enforced here.
 dependencies = []
 
 [project.optional-dependencies]
 vllm = ["vllm>=0.19.1", "pycocotools", "safetensors"]
 eval = ["pyarrow", "pycocotools", "huggingface_hub"]
+# Training (train.py, scripts/train_stage*.sh); tested with transformers 5.4.0,
+# deepspeed 0.18.9 and accelerate 1.13.0.
+train = ["transformers==5.4.0", "accelerate>=1.13.0", "deepspeed>=0.18.9", "pyyaml", "tensorboard"]
+# Optional fused kernels: liger-kernel for the fused linear+CE LM loss and
+# flash-linear-attention / causal-conv1d for Qwen3.5's linear-attention layers.
+train-fast = ["liger-kernel>=0.7.0", "flash-linear-attention>=0.4.2", "causal-conv1d>=1.6.1"]
 
 [tool.setuptools]
 py-modules = ["infer"]
@@ -26,6 +33,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "xiaomi_lens.integrations.vllm" = ["*.sh"]
+"xiaomi_lens.train" = ["configs/*.json"]
 
 # vLLM discovers out-of-tree plugins through entry points, and it re-loads them in
 # every process — including the spawned EngineCore worker, which is why a plain

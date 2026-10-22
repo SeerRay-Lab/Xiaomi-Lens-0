@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/d7ed080d-f815-4eb5-80b0-85273974f687
 
 ## 📰 最新动态
 
+- Xiaomi-Lens-0 [训练代码](src/xiaomi_lens/train/)现已开源，包含两个训练阶段、启动脚本和示例数据。使用方法见[训练说明](#训练)。
 - [Xiaomi-Lens-0 在线 Demo](https://huggingface.co/spaces/hugging-apps/xiaomi-lens-0) 现已在 Hugging Face Spaces 上线。
 - [Xiaomi-Lens-0](https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0) 模型权重与 [LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench) 评测基准数据集现已在 Hugging Face 开源。
 - [Xiaomi-Lens-0 技术报告](https://arxiv.org/abs/2610.23279)现已在 arXiv 公开。
@@ -318,6 +319,31 @@ python eval/run.py --backend vllm --vllm-text-device cuda:0 --vllm-mask-device c
 ```
 
 结果写入 `metrics.json`（整体及按 domain、explicitness、cardinality 分组的 Prec@0.5、cIoU、gIoU），逐样本预测写入 `predictions.jsonl`。加 `--resume` 可继续中断的评测，加 `--limit N` 可快速检查。
+
+### 训练
+
+训练从 Qwen3.5 出发，分两个阶段：Stage 1 冻结模型其余部分，只用 mask loss 训练 mask decoder 和 `<|mask|>` 嵌入；Stage 2 全参数微调，同时优化 LM loss 与 mask loss（dice + BCE）。启动脚本使用 DeepSpeed（Stage 1 为 ZeRO-1，Stage 2 为 ZeRO-2），需要 CUDA GPU。
+
+```bash
+pip install -e ".[train]"        # transformers 5.4、deepspeed、accelerate
+pip install -e ".[train-fast]"   # 可选：liger-kernel 与 Qwen3.5 线性注意力加速算子
+
+# 准备基座模型：把 Qwen 的 box token 重命名为 <bbox>/</bbox>（token ID 与权重不变）
+hf download Qwen/Qwen3.5-4B --local-dir checkpoints/Qwen3.5-4B
+python tools/prepare_base_model.py checkpoints/Qwen3.5-4B --in-place
+
+# 可选：生成合成玩具数据，端到端检查环境
+python examples/train/make_toy_data.py --output examples/train/toy
+
+# Stage 1 → checkpoints/xiaomi-lens-stage1
+MODEL_PATH=checkpoints/Qwen3.5-4B DATA_CONFIG=examples/train/stage1.yaml \
+  bash scripts/train_stage1.sh
+
+# Stage 2 → checkpoints/xiaomi-lens-stage2（从 Stage 1 输出继续）
+DATA_CONFIG=examples/train/stage2.yaml bash scripts/train_stage2.sh
+```
+
+训练数据为 YAML 清单列出的 JSONL 文件，assistant 回复中的每个 `<|mask|>` 对应一个 COCO RLE mask，格式见 [`examples/train/README.md`](examples/train/README.md)。追加在启动脚本后的参数会覆盖默认值（完整参数见 `python train.py --help`）。多机训练时，在每个节点设置 `NNODES`、`NODE_RANK`、`MASTER_ADDR` 后运行同一脚本。两个脚本都会从 `OUTPUT_DIR` 中最新的 `checkpoint-*` 自动续训，续训时需保持相同的总卡数与 ZeRO stage。训练产出可直接用于 `infer.py`、`eval/run.py` 与 vLLM 服务。
 
 ## 📝 引用
 

@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/d7ed080d-f815-4eb5-80b0-85273974f687
 
 ## 📰 News
 
+- The Xiaomi-Lens-0 [training code](src/xiaomi_lens/train/) is now open source, including both training stages, launch scripts, and example data. See [Training](#training) to get started.
 - The [Xiaomi-Lens-0 online demo](https://huggingface.co/spaces/hugging-apps/xiaomi-lens-0) is now live on Hugging Face Spaces.
 - The [Xiaomi-Lens-0](https://huggingface.co/SeerRay-Lab/Xiaomi-Lens-0) model weights and the [LensBench](https://huggingface.co/datasets/SeerRay-Lab/LensBench) benchmark dataset are now publicly available on Hugging Face.
 - The [Xiaomi-Lens-0 Technical Report](https://arxiv.org/abs/2610.23279) is now publicly available on arXiv.
@@ -318,6 +319,31 @@ python eval/run.py --backend vllm --vllm-text-device cuda:0 --vllm-mask-device c
 ```
 
 Results are written to `metrics.json` (Prec@0.5, cIoU and gIoU, overall and per domain, explicitness and cardinality) and per-sample predictions to `predictions.jsonl`. Add `--resume` to continue an interrupted run and `--limit N` for a quick check.
+
+### Training
+
+Training starts from Qwen3.5 in two stages. Stage 1 trains the mask decoder and the `<|mask|>` embedding with mask loss alone, keeping the rest of the model frozen. Stage 2 fine-tunes all parameters with the LM loss plus the mask loss (dice + BCE). The launchers use DeepSpeed (ZeRO-1 for Stage 1, ZeRO-2 for Stage 2) and expect CUDA GPUs.
+
+```bash
+pip install -e ".[train]"        # transformers 5.4, deepspeed, accelerate
+pip install -e ".[train-fast]"   # optional: liger-kernel and Qwen3.5 linear-attention kernels
+
+# Prepare the base model: rename Qwen's box tokens to <bbox>/</bbox> (IDs and weights unchanged)
+hf download Qwen/Qwen3.5-4B --local-dir checkpoints/Qwen3.5-4B
+python tools/prepare_base_model.py checkpoints/Qwen3.5-4B --in-place
+
+# Optional: synthetic toy data to check the setup end to end
+python examples/train/make_toy_data.py --output examples/train/toy
+
+# Stage 1 → checkpoints/xiaomi-lens-stage1
+MODEL_PATH=checkpoints/Qwen3.5-4B DATA_CONFIG=examples/train/stage1.yaml \
+  bash scripts/train_stage1.sh
+
+# Stage 2 → checkpoints/xiaomi-lens-stage2 (starts from the Stage 1 output)
+DATA_CONFIG=examples/train/stage2.yaml bash scripts/train_stage2.sh
+```
+
+Training data is JSONL listed in a YAML manifest. Each `<|mask|>` in an assistant turn is paired with one COCO RLE mask; [`examples/train/README.md`](examples/train/README.md) describes the format. Arguments appended to a launcher override its defaults (`python train.py --help` lists them all). For multi-node training, run the launcher on every node with `NNODES`, `NODE_RANK`, and `MASTER_ADDR` set. Both launchers resume from the latest `checkpoint-*` in `OUTPUT_DIR` with the same world size and ZeRO stage. The output loads with `infer.py`, `eval/run.py`, and the vLLM servers.
 
 ## 📝 Citation
 

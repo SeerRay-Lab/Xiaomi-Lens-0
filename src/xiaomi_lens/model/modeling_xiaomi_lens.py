@@ -21,8 +21,9 @@ Core design:
 3. Each <|mask|> hidden state produces a dynamic classifier over the resulting
    pixel embeddings. A further 4× bilinear interpolation brings the mask logits
    to `(grid_h*16, grid_w*16)`, matching the vision encoder's input resolution.
-
-This module contains the inference path only.
+4. When `labels` / `mask_targets` are passed, forward also returns the training
+   loss `lm_loss_weight * lm_loss + mask_loss_weight * mask_loss`, where the
+   mask loss is dice + BCE at canvas resolution.
 """
 
 from dataclasses import dataclass
@@ -36,6 +37,8 @@ from transformers.models.qwen3_5.modeling_qwen3_5 import (
 )
 
 from .config import build_mask_decoder_config, get_qwen_vision_config
+from .lm_loss import CausalLMLossMixin
+from .losses import MaskLoss
 from .pixel_mask_decoder import PixelMaskDecoder
 
 # Each ViT patch spans 16 input pixels. Learned 4× upsampling followed by 4×
@@ -46,6 +49,7 @@ MASK_CANVAS_SCALE = 16
 @dataclass
 class XiaomiLensOutput(ModelOutput):
     """Output type for XiaomiLensQwen3_5ForConditionalGeneration."""
+    loss: Optional[torch.Tensor] = None
     logits: Optional[torch.Tensor] = None
     past_key_values: Optional[List] = None
     hidden_states: Optional[tuple] = None
@@ -53,9 +57,16 @@ class XiaomiLensOutput(ModelOutput):
     rope_deltas: Optional[torch.Tensor] = None
     pred_masks: Optional[torch.Tensor] = None
     pred_mask_valid: Optional[torch.Tensor] = None
+    # Weighted per-microbatch training contributions; `loss == lm_loss + mask_loss`.
+    lm_loss: Optional[torch.Tensor] = None
+    mask_loss: Optional[torch.Tensor] = None
 
 
-class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration):
+class XiaomiLensQwen3_5ForConditionalGeneration(CausalLMLossMixin, Qwen3_5ForConditionalGeneration):
+    # Lets HF Trainer pass `num_items_in_batch` into forward; see
+    # `CausalLMLossMixin._token_sum_scale` for how the LM loss consumes it.
+    accepts_loss_kwargs = True
+
     def __init__(self, config):
         super().__init__(config)
 
@@ -63,6 +74,13 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
         if decoder_config is None:
             decoder_config = build_mask_decoder_config(config)
         self.mask_decoder = PixelMaskDecoder(decoder_config)
+
+        # Parameter-free, so it does not change the checkpoint's state dict.
+        self.mask_loss_fn = MaskLoss(
+            dice_weight=getattr(config, "mask_dice_weight", 1.0),
+            bce_weight=getattr(config, "mask_bce_weight", 2.0),
+            chunk_size=getattr(config, "mask_loss_chunk_size", 8),
+        )
 
     @staticmethod
     def _get_vision_config(config):
@@ -182,10 +200,16 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
         mask_positions: torch.Tensor,
         image_grid_thw: torch.LongTensor,
         visual_outputs,
+        mask_valid_mask: Optional[torch.Tensor] = None,
         images_per_sample: Optional[torch.Tensor] = None,
         mask_image_index: Optional[torch.Tensor] = None,
+        mask_canvas_grid: Optional[tuple] = None,
     ):
         """Decode pixel masks via a single batched mask_decoder call.
+
+        Every rank calls `self.mask_decoder` exactly once per forward, so
+        DeepSpeed collectives on the decoder parameters stay in step even when
+        ranks hold different numbers of masks.
 
         **The decoder's batch dim is a `(sample, image)` GROUP, not a sample.**
         `mask_image_index[b, k]` (sample-local) says which of row `b`'s images
@@ -196,7 +220,12 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
 
         `images_per_sample[i]` is the number of images owned by batch row `i`
         (0 / 1 / ≥2); a row with 0 images produces no group and its outputs
-        stay zero. The canvas is sized to the largest image any `<|mask|>`
+        stay zero. Padded slots (`mask_valid_mask[b, k] == 0`) also get no
+        group and zero outputs.
+
+        `mask_canvas_grid` is the `(grid_h, grid_w)` the trainer sized its
+        targets at, so predictions and targets cannot disagree on H/W. When it
+        is absent (inference), the canvas covers every image a `<|mask|>`
         binds to.
 
         Returns `(pred_masks, pred_mask_valid)`, both
@@ -226,6 +255,10 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
             )
 
         positions_l = mask_positions.tolist()
+        valid_l = (
+            mask_valid_mask.tolist() if mask_valid_mask is not None
+            else [[1.0] * K for _ in range(batch_size)]
+        )
         if mask_image_index is None:
             img_idx_l = [[0] * K for _ in range(batch_size)]
         else:
@@ -245,15 +278,20 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
             if n_img == 0:
                 continue  # zero-image row: no group, its outputs stay zero
             for k in range(K):
+                if not valid_l[b][k] > 0:
+                    continue
                 local = min(max(int(img_idx_l[b][k]), 0), n_img - 1)
                 groups.setdefault((b, offsets[b] + local), []).append(k)
 
         group_keys = list(groups.keys())
-        # Clamp to ≥1: nn.MultiheadAttention on a zero-size batch is a landmine.
+        # Clamp to ≥1: attention on a zero-size batch is a landmine, and an
+        # all-invalid batch must still make its one rank-symmetric call.
         num_groups = max(1, len(group_keys))
         max_queries = max(1, max((len(v) for v in groups.values()), default=1))
 
-        if group_keys:
+        if mask_canvas_grid is not None:
+            max_grid_h, max_grid_w = int(mask_canvas_grid[0]), int(mask_canvas_grid[1])
+        elif group_keys:
             # The canvas covers every image a <|mask|> binds to.
             _rows = torch.tensor(
                 [row for _, row in group_keys], device=image_grid_thw.device, dtype=torch.long,
@@ -308,7 +346,8 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
             if grid_h > max_grid_h or grid_w > max_grid_w:
                 raise ValueError(
                     f"Image grid ({grid_h}, {grid_w}) exceeds the mask canvas grid "
-                    f"({max_grid_h}, {max_grid_w})."
+                    f"({max_grid_h}, {max_grid_w}); `mask_canvas_grid` must cover every "
+                    "image that a valid <|mask|> binds to."
                 )
 
             # This image's features, shared by every query in the group via einsum.
@@ -350,7 +389,8 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
             patch_key_padding_mask=patch_key_padding_mask,  # (N, max_patches) True=pad
         )  # (N, Kg, max_grid_h*16, max_grid_w*16) — already canvas resolution
 
-        # Scatter the groups back into the (sample, k) layout.
+        # Scatter the groups back into the (sample, k) layout. The index-assign
+        # lowers to `index_put_`, so gradients flow back to `grouped`.
         pred_masks = grouped.new_zeros((batch_size, K, mask_h, mask_w))
         if b_idx:
             pred_masks[b_idx, k_idx] = grouped[g_idx, j_idx]
@@ -364,6 +404,7 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
         position_ids: Optional[torch.LongTensor] = None,
         past_key_values: Optional[List[torch.FloatTensor]] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
+        labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
@@ -375,7 +416,13 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
         mm_token_type_ids: Optional[torch.Tensor] = None,
         logits_to_keep: int | torch.Tensor = 0,
         mask_positions: Optional[torch.Tensor] = None,
+        mask_valid_mask: Optional[torch.Tensor] = None,
         mask_image_index: Optional[torch.Tensor] = None,
+        mask_canvas_grid: Optional[tuple] = None,
+        mask_targets: Optional[torch.Tensor] = None,
+        mask_pixel_valid: Optional[torch.Tensor] = None,
+        num_items_in_batch: Optional[torch.Tensor] = None,
+        gradient_accumulation_steps: Optional[int] = None,
         **kwargs,
     ):
         """Run the LM and, when `mask_positions` is given, decode one mask per `<|mask|>`.
@@ -384,6 +431,11 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
         `input_ids`. `mask_image_index` optionally binds each slot to one of the
         sample's images; by default each slot binds to the nearest preceding
         image.
+
+        Training passes `labels` for the LM loss and `mask_targets` /
+        `mask_pixel_valid` / `mask_valid_mask` / `mask_canvas_grid` for the
+        mask loss (see `XiaomiLensTrainer.compute_loss`). Without them, forward
+        is the inference path.
         """
         output_hidden_states = output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
@@ -416,15 +468,36 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
 
         hidden_states = outputs.last_hidden_state  # (batch, seq, hidden)
 
-        slice_indices = (
-            slice(-logits_to_keep, None)
-            if isinstance(logits_to_keep, int)
-            else logits_to_keep
+        loss = None
+        logits = None
+        lm_loss = None
+        mask_loss = None
+
+        # A negative weight disables that loss term.
+        lm_loss_weight = getattr(self.config, "lm_loss_weight", 1.0)
+        mask_loss_weight = getattr(self.config, "mask_loss_weight", 1.0)
+        compute_lm_loss = labels is not None and lm_loss_weight >= 0
+        is_training_forward = labels is not None or mask_targets is not None
+
+        # The fused kernel folds `lm_head` into the loss, so no logits are
+        # materialized. Mask-only training (`lm_loss_weight < 0`) skips the
+        # full-vocab projection entirely.
+        use_fused_lm_loss = compute_lm_loss and self._use_fused_linear_lm_loss(
+            hidden_states, logits_to_keep
         )
-        logits = self.lm_head(hidden_states[:, slice_indices, :])
+        if (labels is None or compute_lm_loss) and not use_fused_lm_loss:
+            slice_indices = (
+                slice(-logits_to_keep, None)
+                if isinstance(logits_to_keep, int)
+                else logits_to_keep
+            )
+            logits = self.lm_head(hidden_states[:, slice_indices, :])
 
         pred_masks = None
         pred_mask_valid = None
+        mask_targets_for_loss = None
+        mask_valid_for_loss = None
+        real_mask_loss_contribution = False
         has_mask_work = bool(
             mask_positions is not None
             and mask_positions.numel() > 0
@@ -452,14 +525,88 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
                 mask_positions=mask_positions,
                 image_grid_thw=image_grid_thw,
                 visual_outputs=visual_outputs,
+                mask_valid_mask=mask_valid_mask,
                 images_per_sample=images_per_sample,
                 mask_image_index=mask_image_index,
+                mask_canvas_grid=mask_canvas_grid,
             )
+            if mask_targets is not None:
+                if pred_masks.shape[-2:] != mask_targets.shape[-2:]:
+                    raise ValueError(
+                        f"pred_masks {tuple(pred_masks.shape[-2:])} and mask_targets "
+                        f"{tuple(mask_targets.shape[-2:])} disagree on canvas size; pass "
+                        "`mask_canvas_grid` matching the grid the targets were sized at."
+                    )
+                mask_targets_for_loss = mask_targets
+                mask_valid_for_loss = (
+                    mask_pixel_valid if mask_pixel_valid is not None else pred_mask_valid
+                )
+                real_mask_loss_contribution = True
+        elif is_training_forward:
+            # Rank-collective safety: every rank must call `mask_decoder` and
+            # `mask_loss_fn` once per forward, or DeepSpeed's gradient
+            # reduction desyncs. Ranks without masks run a zero-weighted
+            # surrogate through the same modules.
+            llm_hidden = hidden_states.shape[-1]
+            vision_hidden = int(self._get_vision_config(self.config).hidden_size)
+            dummy_mask = hidden_states.new_zeros((1, 1, llm_hidden))
+            dummy_patch = hidden_states.new_zeros((1, 1, vision_hidden))
+            pred_masks = self.mask_decoder(dummy_mask, dummy_patch, grid_h=1, grid_w=1)
+            pred_mask_valid = torch.zeros_like(pred_masks)
+            mask_targets_for_loss = torch.zeros_like(pred_masks)
+            mask_valid_for_loss = pred_mask_valid
+
+        if compute_lm_loss:
+            # When truncation drops every supervised token, the mean CE is
+            # 0/0 = NaN. Emit a graph-connected zero instead so `lm_head` stays
+            # in the backward graph on every rank.
+            if (labels[..., 1:] != -100).any():
+                if use_fused_lm_loss:
+                    lm_loss_value = self._fused_linear_lm_loss(
+                        hidden_states, labels, num_items_in_batch
+                    )
+                else:
+                    lm_loss_value = self._causal_lm_loss(
+                        logits, labels, num_items_in_batch
+                    )
+            elif use_fused_lm_loss:
+                lm_loss_value = (hidden_states.sum() + self.lm_head.weight.sum()) * 0.0
+            else:
+                lm_loss_value = logits.sum() * 0.0
+            lm_loss = lm_loss_weight * lm_loss_value
+            loss = lm_loss
+
+        if mask_targets_for_loss is not None and mask_loss_weight >= 0:
+            # (B, K, H, W) → (B*K, 1, H, W): each (sample, slot) is an
+            # independent mask. Padded slots have an all-zero valid mask and
+            # contribute nothing.
+            B_, K_, H_, W_ = pred_masks.shape
+            mask_loss_value = self.mask_loss_fn(
+                pred_masks.reshape(B_ * K_, 1, H_, W_),
+                mask_targets_for_loss.reshape(B_ * K_, 1, H_, W_),
+                valid_mask=mask_valid_for_loss.reshape(B_ * K_, 1, H_, W_),
+            )
+            effective_weight = mask_loss_weight if real_mask_loss_contribution else 0.0
+            contribution = effective_weight * mask_loss_value
+            if num_items_in_batch is not None:
+                # HF Trainer skips its own `/ gradient_accumulation_steps` when
+                # the model accepts loss kwargs. The LM term folds that into
+                # its token-count scale; the per-microbatch mask mean must
+                # divide explicitly.
+                contribution = contribution / max(gradient_accumulation_steps or 1, 1)
+            if not real_mask_loss_contribution:
+                # Keep the LM forward in the backward graph on mask-free ranks
+                # (e.g. a text-only batch under mask-only training).
+                contribution = contribution + hidden_states.sum() * 0.0
+            loss = contribution if loss is None else loss + contribution
+            mask_loss = contribution
 
         if not return_dict:
-            return (logits,) + outputs[1:]
+            output = (logits,) + outputs[1:]
+            return ((loss,) + output) if loss is not None else output
 
         return XiaomiLensOutput(
+            loss=loss,
             logits=logits,
             past_key_values=outputs.past_key_values,
             hidden_states=outputs.hidden_states,
@@ -467,4 +614,6 @@ class XiaomiLensQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration)
             rope_deltas=getattr(self.model, "rope_deltas", None),
             pred_masks=pred_masks,
             pred_mask_valid=pred_mask_valid,
+            lm_loss=lm_loss,
+            mask_loss=mask_loss,
         )

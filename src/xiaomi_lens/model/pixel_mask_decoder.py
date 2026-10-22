@@ -52,6 +52,7 @@ from typing import TypeAlias
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.utils.checkpoint
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,12 @@ FlashFunctions: TypeAlias = tuple[AttentionFunction, AttentionFunction]
 
 _SUPPORTED_ATTENTION_BACKENDS = ("mha", "sdpa", "flash")
 _FLASH_DTYPES = (torch.float16, torch.bfloat16)
+
+# CUDA's bilinear-upsample backward kernel fails once one launch's output
+# exceeds INT32_MAX elements. Normal tensors use native F.interpolate; only that
+# case is split, with each chunk capped well below the limit.
+_BILINEAR_NATIVE_MAX_OUTPUT_ELEMENTS = (1 << 31) - 1
+_BILINEAR_CHUNK_MAX_OUTPUT_ELEMENTS = 1 << 28
 
 
 def _resolve_attention_backend() -> str:
@@ -359,6 +366,100 @@ class PatchSelfAttention(nn.Module):
         return output.view(batch_size, num_patches, num_heads * head_dim)
 
 
+class _ChunkedBilinearInterpolate4x(torch.autograd.Function):
+    """Bilinear 4× interpolation with a row-chunked CUDA backward.
+
+    Bilinear interpolation treats every `(batch, channel)` plane independently,
+    so flattening those dimensions and splitting rows preserves its semantics
+    while avoiding the single >INT32_MAX-element launch that CUDA rejects.
+    """
+
+    @staticmethod
+    def forward(ctx, inputs: torch.Tensor) -> torch.Tensor:
+        batch_size, channels, input_h, input_w = inputs.shape
+        num_rows = batch_size * channels
+        output_h = input_h * 4
+        output_w = input_w * 4
+        output_area = output_h * output_w
+        rows_per_chunk = max(
+            1,
+            min(
+                num_rows,
+                _BILINEAR_CHUNK_MAX_OUTPUT_ELEMENTS // output_area,
+            ),
+        )
+
+        flat_inputs = inputs.reshape(num_rows, 1, input_h, input_w)
+        flat_output = inputs.new_empty((num_rows, 1, output_h, output_w))
+        for start in range(0, num_rows, rows_per_chunk):
+            end = min(start + rows_per_chunk, num_rows)
+            chunk = torch.ops.aten.upsample_bilinear2d.default(
+                flat_inputs[start:end],
+                [output_h, output_w],
+                False,
+                4.0,
+                4.0,
+            )
+            flat_output[start:end].copy_(chunk)
+
+        ctx.input_shape = (batch_size, channels, input_h, input_w)
+        ctx.output_size = (output_h, output_w)
+        ctx.rows_per_chunk = rows_per_chunk
+        return flat_output.view(batch_size, channels, output_h, output_w)
+
+    @staticmethod
+    @torch.autograd.function.once_differentiable
+    def backward(ctx, grad_output: torch.Tensor):
+        batch_size, channels, input_h, input_w = ctx.input_shape
+        output_h, output_w = ctx.output_size
+        num_rows = batch_size * channels
+        flat_grad_output = grad_output.reshape(num_rows, 1, output_h, output_w)
+        flat_grad_input = grad_output.new_empty((num_rows, 1, input_h, input_w))
+
+        for start in range(0, num_rows, ctx.rows_per_chunk):
+            end = min(start + ctx.rows_per_chunk, num_rows)
+            chunk = torch.ops.aten.upsample_bilinear2d_backward.default(
+                flat_grad_output[start:end],
+                [output_h, output_w],
+                [end - start, 1, input_h, input_w],
+                False,
+                4.0,
+                4.0,
+            )
+            flat_grad_input[start:end].copy_(chunk)
+
+        return flat_grad_input.view(ctx.input_shape)
+
+
+def _bilinear_interpolate_4x(mask_logits: torch.Tensor) -> torch.Tensor:
+    """Upsample logits 4×, chunking only gradient-bearing launches over the CUDA limit."""
+    output_h = mask_logits.shape[-2] * 4
+    output_w = mask_logits.shape[-1] * 4
+    output_area = output_h * output_w
+    num_rows = mask_logits.shape[0] * mask_logits.shape[1]
+    output_elements = num_rows * output_area
+
+    needs_chunking = (
+        torch.is_grad_enabled()
+        and mask_logits.requires_grad
+        and output_elements > _BILINEAR_NATIVE_MAX_OUTPUT_ELEMENTS
+    )
+    if not needs_chunking:
+        return F.interpolate(
+            mask_logits,
+            scale_factor=4,
+            mode="bilinear",
+            align_corners=False,
+        )
+    if output_area > _BILINEAR_NATIVE_MAX_OUTPUT_ELEMENTS:
+        raise RuntimeError(
+            "A single decoder mask plane exceeds the CUDA bilinear-backward "
+            f"limit: output size ({output_h}, {output_w}) has "
+            f"{output_area} elements. Reduce --max_pixels."
+        )
+    return _ChunkedBilinearInterpolate4x.apply(mask_logits)
+
+
 class PixelMaskDecoder(nn.Module):
     """Decode `<|mask|>` hidden states into full-resolution mask logits.
 
@@ -418,6 +519,10 @@ class PixelMaskDecoder(nn.Module):
             ),
         )
 
+        # Transformers' `gradient_checkpointing_enable` flips this attribute on
+        # every module that declares it, which opts the decoder in to recompute.
+        self.gradient_checkpointing = False
+
         # Support the legacy `patch_decoder.*` checkpoint parameter names.
         self._register_load_state_dict_pre_hook(self._remap_legacy_keys)
 
@@ -434,6 +539,17 @@ class PixelMaskDecoder(nn.Module):
         for old_key in old_keys:
             suffix = old_key[len(old_prefix) :]
             state_dict[new_prefix + suffix] = state_dict.pop(old_key)
+
+    def _maybe_checkpoint(self, module: nn.Module, *args):
+        """Run `module` under non-reentrant activation checkpointing while training.
+
+        Only `patch_self_attn` is wrapped. It holds the decoder's largest
+        activations, and wrapping a submodule keeps exactly one decoder call
+        per model forward on every rank.
+        """
+        if not (self.gradient_checkpointing and self.training):
+            return module(*args)
+        return torch.utils.checkpoint.checkpoint(module, *args, use_reentrant=False)
 
     def forward(
         self,
@@ -468,7 +584,8 @@ class PixelMaskDecoder(nn.Module):
 
         mask_embedding = self.mask_embed(mask_hidden)
         patch_features = self.patch_proj(image_features)
-        patch_embedding = self.patch_self_attn(
+        patch_embedding = self._maybe_checkpoint(
+            self.patch_self_attn,
             patch_features,
             patch_key_padding_mask,
         )
@@ -491,12 +608,7 @@ class PixelMaskDecoder(nn.Module):
 
         # Interpolate K independently as channels; a fixed integer scale stabilizes
         # sampling offsets.
-        return F.interpolate(
-            mask_logits,
-            scale_factor=4,
-            mode="bilinear",
-            align_corners=False,
-        )
+        return _bilinear_interpolate_4x(mask_logits)
 
     @staticmethod
     def _validate_inputs(

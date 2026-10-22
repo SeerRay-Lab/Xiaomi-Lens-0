@@ -229,3 +229,5 @@ output/
 deploy/
 /docs/README.md
 AGENTS.md
+checkpoints/
+examples/train/toy/

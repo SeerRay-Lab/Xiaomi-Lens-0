@@ -1,0 +1,7 @@
+# Stage 1 manifest for the synthetic toy data written by make_toy_data.py.
+# Relative paths resolve against this file's directory.
+datasets:
+  - name: toy_stage1
+    path: toy/stage1.jsonl
+    image_folder: toy/images
+    tag: segmentation

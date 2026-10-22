@@ -1,0 +1,8 @@
+# Two RefCOCO training rows with their COCO images. Each row has one mask, so
+# this manifest works with either launcher. Relative paths resolve against
+# this file's directory.
+datasets:
+  - name: refcoco_sample
+    path: sample.jsonl
+    image_folder: images
+    tag: segmentation

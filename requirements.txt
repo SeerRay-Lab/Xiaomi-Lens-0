@@ -10,3 +10,7 @@ pillow
 
 # vLLM serving (src/xiaomi_lens/integrations/vllm) — install with
 # `pip install -e ".[vllm]"`; tested with vllm 0.19.1.
+
+# Training (train.py) — install with `pip install -e ".[train]"`; tested with
+# transformers 5.4.0, deepspeed 0.18.9, and accelerate 1.13.0. Optional fused
+# kernels: `pip install -e ".[train-fast]"`.

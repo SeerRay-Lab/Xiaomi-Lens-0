@@ -1,0 +1,16 @@
+# Stage 2 manifest for the synthetic toy data written by make_toy_data.py.
+# Relative paths resolve against this file's directory. The `eval:` section
+# enables training-time evaluation with --eval_strategy steps.
+train:
+  datasets:
+    - name: toy_stage2
+      path: toy/stage2.jsonl
+      image_folder: toy/images
+      tag: sft
+eval:
+  datasets:
+    - name: toy_stage2_eval
+      path: toy/stage2.jsonl
+      image_folder: toy/images
+      tag: sft
+      sampling_strategy: first:16
