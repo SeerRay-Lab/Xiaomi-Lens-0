@@ -177,9 +177,9 @@ Box-grounding F1 on the RefCOCO family is on the [project page](https://seerray-
 
 LensBench contains 1,200 human-reviewed paired units and 4,800 instructions across general, aerial, driving, and panoramic imagery (300 units per domain). Each unit combines single/multiple targets with explicit/implicit wording. The two wordings share the same target mask; multiple targets use the union mask and its enclosing box. Targets and masks are fixed before instruction synthesis, followed by automated consistency checks and human review of each complete unit.
 
-Xiaomi-Lens-0 leads mask cIoU in aerial (57.1), driving (68.6), and panoramic (62.3) imagery, and leads both metrics on explicit instructions. Implicit instructions remain challenging: cIoU drops from 71.4 to 54.7, while box Prec@0.5 drops from 85.0 to 70.0. The gap is largest for multiple targets in panoramic scenes, where cIoU falls from 71.8 to 48.9 and box Prec@0.5 from 81.3 to 48.7.
+Xiaomi-Lens-0 leads mask cIoU in aerial (57.1), driving (68.6), and panoramic (62.3) imagery, and leads both metrics on explicit instructions. Implicit instructions remain challenging: cIoU drops from 71.4 to 54.7, while Prec@0.5 drops from 85.0 to 70.0. The gap is largest for multiple targets in panoramic scenes, where cIoU falls from 71.8 to 48.9 and Prec@0.5 from 81.3 to 48.7.
 
-Marginal results pool single and multiple targets. Each cell reports mask cIoU / box Prec@0.5 (%, higher is better).
+Marginal results pool single and multiple targets. Each cell reports cIoU / Prec@0.5 (%, higher is better).
 
 | Method | Explicit | Implicit | General | Aerial | Driving | Panoramic |
 |:--| :-: | :-: | :-: | :-: | :-: | :-: |
