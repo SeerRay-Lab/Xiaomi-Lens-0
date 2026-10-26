@@ -368,4 +368,6 @@ DATA_CONFIG=examples/train/stage2.yaml bash scripts/train_stage2.sh
 
 Xiaomi-Lens-0 基于 [Qwen3.5](https://github.com/QwenLM) 构建。
 
+感谢 [InstructSAM](https://github.com/ZJU4EmbodiedAI/InstructSAM) 的开源贡献。
+
 代码采用 [Apache-2.0](LICENSE) 许可。
