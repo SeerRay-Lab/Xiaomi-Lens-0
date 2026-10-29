@@ -154,6 +154,8 @@ class XiaomiLensMaskIOProcessor(IOProcessor):
         out = model_output[0]
         data = out.outputs.data if hasattr(out.outputs, "data") else out.outputs
         flat = torch.as_tensor(data).float().reshape(-1)
+        if flat.numel() < 3:
+            raise ValueError(f"Invalid pooler output tensor with size {flat.numel()}, expected at least 3 elements.")
         grid_h, grid_w, k = int(flat[0]), int(flat[1]), int(flat[2])
         canvas_h, canvas_w = grid_h * 16, grid_w * 16
         logits = flat[3:].reshape(k, canvas_h, canvas_w)

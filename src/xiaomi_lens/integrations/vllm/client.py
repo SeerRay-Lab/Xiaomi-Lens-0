@@ -65,8 +65,12 @@ def _post_json(url: str, payload: dict, timeout: float = 300.0) -> dict:
     req = urllib.request.Request(
         url, data=data, headers={"Content-Type": "application/json"}, method="POST"
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        raise RuntimeError(f"HTTP request failed with status {e.code}: {error_body}") from e
 
 
 def _image_data_uri(image_path: Path) -> str:
