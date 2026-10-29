@@ -75,19 +75,41 @@ class XiaomiLensMaskPooler(Pooler):
 
     def forward(self, hidden_states, pooling_metadata):
         model = self._model
-        # hidden_states is (num_tokens, llm_hidden) for the batch. Split it back
-        # into requests by prompt_lens, then batch requests with identical patch
-        # grids for PixelMaskDecoder.
-        prompt_lens = pooling_metadata.prompt_lens.tolist()
-        ids_all = pooling_metadata.prompt_token_ids
+
+        # Filter out zero-padded slots in vLLM's batch buffer to retrieve actual active request lengths.
+        raw_lens = pooling_metadata.prompt_lens
+        if isinstance(raw_lens, torch.Tensor):
+            raw_lens = raw_lens.tolist()
+        prompt_lens = [int(l) for l in raw_lens if l > 0]
+        if not prompt_lens:
+            prompt_lens = [int(raw_lens[0])] if raw_lens else [hidden_states.shape[0]]
+
+        # Read CPU-side prompt token IDs enabled by `requires_token_ids=True`.
+        if hasattr(pooling_metadata, "get_prompt_token_ids_cpu") and callable(pooling_metadata.get_prompt_token_ids_cpu):
+            ids_all = pooling_metadata.get_prompt_token_ids_cpu()
+        elif hasattr(pooling_metadata, "get_prompt_token_ids") and callable(pooling_metadata.get_prompt_token_ids):
+            try:
+                ids_all = pooling_metadata.get_prompt_token_ids()
+            except Exception:
+                ids_all = getattr(pooling_metadata, "prompt_token_ids_cpu", None)
+        else:
+            ids_all = getattr(pooling_metadata, "prompt_token_ids_cpu", None) or getattr(pooling_metadata, "prompt_token_ids", None)
+
         hidden_groups: list[torch.Tensor] = []
         id_groups: list = []
+
+        # Pass the active request count so image row count matches request_count in split_captured_vision.
         vision_groups = model.split_captured_vision(len(prompt_lens))
         start = 0
         for req_idx, plen in enumerate(prompt_lens):
             hidden_groups.append(hidden_states[start:start + plen])
-            id_groups.append(ids_all[req_idx][:plen] if ids_all is not None else None)
+            if ids_all is not None and req_idx < len(ids_all):
+                cur_ids = ids_all[req_idx]
+                id_groups.append(cur_ids[:plen] if hasattr(cur_ids, "__getitem__") else cur_ids)
+            else:
+                id_groups.append(None)
             start += plen
+
         return model.decode_mask_batch(hidden_groups, id_groups, vision_groups)
 
 
@@ -106,7 +128,10 @@ class XiaomiLensForVLLM(Qwen3_5ForConditionalGeneration):
         vis = hf_config.vision_config
         self._merge_size = int(getattr(vis, "spatial_merge_size", 2) or 2)
 
-        from vllm.transformers_utils.tokenizer import get_tokenizer
+        try:
+            from vllm.tokenizers import get_tokenizer
+        except ModuleNotFoundError:
+            from vllm.transformers_utils.tokenizer import get_tokenizer
         mc = vllm_config.model_config
         tok = get_tokenizer(mc.tokenizer, trust_remote_code=mc.trust_remote_code)
         self._mask_token_id = tok.convert_tokens_to_ids(MASK_TOKEN)

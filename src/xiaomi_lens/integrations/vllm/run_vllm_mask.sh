@@ -58,6 +58,8 @@ fi
 
 SERVED_NAME="${SERVED_NAME:-xiaomi-lens}"
 PORT="${PORT:-8001}"          # default off :8000 so it can coexist with the text serve
+# Workaround: vLLM V2 Model Runner does not support custom 'plugin' pooling tasks yet.
+export VLLM_USE_V2_MODEL_RUNNER="${VLLM_USE_V2_MODEL_RUNNER:-0}"
 # By default vLLM reads max_pixels from the checkpoint's processor_config.json.
 # Set MAX_PIXELS only for an intentional override; both serves must use the same
 # value.

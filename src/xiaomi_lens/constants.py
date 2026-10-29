@@ -15,7 +15,7 @@
 """Project-wide constants for Xiaomi-Lens-0."""
 
 # Keep generation defaults aligned across inference entry points.
-DEFAULT_MAX_NEW_TOKENS = 16_384
+DEFAULT_MAX_NEW_TOKENS = 2048
 
 MASK_TOKEN = "<|mask|>"
 
